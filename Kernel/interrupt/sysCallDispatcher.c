@@ -3,11 +3,12 @@
 #include <lib.h>
 #include <time.h>
 #include <sound.h>
+#include <memManager.h>
 
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define SYS_CALLS_QTY 19
+#define SYS_CALLS_QTY 25
 
 extern uint8_t hasregisterInfo;
 extern const uint64_t registerInfo[17];
@@ -55,29 +56,24 @@ static uint64_t sys_writeColor(uint64_t fd, char buffer, Color color)
     return 1;
 }
 
-static uint64_t sys_clear()
-{
+static uint64_t sys_clear(){
     vDriver_clear();
     return 1;
 }
 
-static uint64_t sys_getScrHeight()
-{
+static uint64_t sys_getScrHeight(){
     return vDriver_getHeight();
 }
 
-static uint64_t sys_getScrWidth()
-{
+static uint64_t sys_getScrWidth(){
     return vDriver_getWidth();
 }
 
-static void sys_drawRectangle(int x, int y, int x2, int y2, Color color)
-{
+static void sys_drawRectangle(int x, int y, int x2, int y2, Color color){
     vDriver_drawRectangle(x, y, x2, y2, color);
 }
 
-static void sys_wait(int ms)
-{
+static void sys_wait(int ms){
     if (ms > 0)
     {
         int start_ms = ms_elapsed();
@@ -88,23 +84,19 @@ static void sys_wait(int ms)
     }
 }
 
-static uint64_t sys_getHours()
-{
+static uint64_t sys_getHours(){
     return getHours();
 }
 
-static uint64_t sys_getMinutes()
-{
+static uint64_t sys_getMinutes(){
     return getMinutes();
 }
 
-static uint64_t sys_getSeconds()
-{
+static uint64_t sys_getSeconds(){
     return getSeconds();
 }
 
-static uint64_t sys_registerInfo(uint64_t registers[17])
-{
+static uint64_t sys_registerInfo(uint64_t registers[17]){
     if (hasregisterInfo)
     {
         for (uint8_t i = 0; i < 17; i++)
@@ -115,8 +107,7 @@ static uint64_t sys_registerInfo(uint64_t registers[17])
     return hasregisterInfo;
 }
 
-static uint64_t sys_printmem(uint64_t *address)
-{
+static uint64_t sys_printmem(uint64_t *address){
     if ((uint64_t)address > (0x20000000 - 32))
     {
         return -1;
@@ -136,29 +127,37 @@ static uint64_t sys_printmem(uint64_t *address)
     return 0;
 }
 
-static uint64_t sys_pixelPlus()
-{
+static uint64_t sys_pixelPlus(){
     plusScale();
     return 1;
 }
 
-static uint64_t sys_pixelMinus()
-{
+static uint64_t sys_pixelMinus(){
     minusScale();
     sys_clear();
     return 1;
 }
 
-static uint64_t sys_playSpeaker(uint32_t frequence, uint64_t duration)
-{
+static uint64_t sys_playSpeaker(uint32_t frequence, uint64_t duration){
     beep(frequence, duration);
     return 1;
 }
 
-static uint64_t sys_stopSpeaker()
-{
+static uint64_t sys_stopSpeaker(){
     stopSpeaker();
     return 1;
+}
+
+static void * sys_mem_alloc(uint64_t size){
+    return mem_alloc(size);
+}
+
+static void sys_mem_free(void * ptr){
+    return mem_free(ptr);
+}
+
+static void * sys_mem_init(void * ptr, int s){
+    return mem_init(ptr, s);
 }
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax)
@@ -217,6 +216,12 @@ uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r
         color.g = g;
         color.b = b;
         return sys_writeColor(rdi, (char)rsi, color);
+    case 18:
+        return sys_mem_alloc(rdi);
+    case 19:
+        sys_mem_free((void*)rdi);
+    case 20:
+        return sys_mem_init((void*)rdi, rsi);
     default:
         return 0;
     }

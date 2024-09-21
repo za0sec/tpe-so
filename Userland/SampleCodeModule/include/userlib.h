@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <colors.h>
 
+#define CHUNK_SIZE 10
+#define CHUNK_COUNT 10
+
 extern const Color BLACK;
 extern const Color WHITE;
 extern const Color RED;
@@ -93,5 +96,7 @@ void drawCursor();
 void welcome();
 
 void registerInfo();
+
+uint64_t test_mm(uint64_t argc, char *argv[]);
 
 #endif /* _USERLIB_H_ */
