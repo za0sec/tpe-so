@@ -19,12 +19,15 @@ static char commandHistory[MAX_COMMAND][MAX_BUFF] = {0};
 static int commandIterator = 0;
 static int commandIdxMax = 0;
 
+
 char usernameLength = 4;
+
 
 // Forward declarations
 void newLineUsername();
 int isUpperArrow(char c);
 int isDownArrow(char c);
+
 
 void printHelp()
 {
@@ -41,12 +44,13 @@ void printHelp()
 	printsColor("\n    >eliminator         - launch ELIMINATOR videogame", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >whoami             - prints current username", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >memtest            - test memory manager\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest};
 
 void kitty()
 {
@@ -166,6 +170,16 @@ void cmd_whoami()
 {
 	prints("\n", MAX_BUFF);
 	prints(username, usernameLength);
+}
+
+void cmd_memtest()
+{
+    sys_mem_init(CHUNK_SIZE * CHUNK_COUNT);
+
+    char *argv[] = {"100000000000000"};
+    if (test_mm(1, argv) == -1){
+		printsColor("test_mm ERROR\n", MAX_BUFF, RED);
+	}
 }
 
 void cmd_help()
