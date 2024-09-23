@@ -156,8 +156,8 @@ static void sys_mem_free(void * ptr){
     return mem_free(ptr);
 }
 
-static void * sys_mem_init(void * ptr, int s){
-    return mem_init(ptr, s);
+static void * sys_mem_init(int s){
+    return mem_init(s);
 }
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax)
@@ -217,11 +217,12 @@ uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r
         color.b = b;
         return sys_writeColor(rdi, (char)rsi, color);
     case 18:
-        return sys_mem_alloc(rdi);
+        return (uint64_t)sys_mem_alloc(rdi);
     case 19:
         sys_mem_free((void*)rdi);
+        return 0;
     case 20:
-        return sys_mem_init((void*)rdi, rsi);
+        return (uint64_t)sys_mem_init(rdi);
     default:
         return 0;
     }

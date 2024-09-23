@@ -174,8 +174,7 @@ void cmd_whoami()
 
 void cmd_memtest()
 {
-	char mem[CHUNK_SIZE * CHUNK_COUNT];
-    sys_mem_init((void*)mem, CHUNK_SIZE * CHUNK_COUNT);
+    sys_mem_init(CHUNK_SIZE * CHUNK_COUNT);
 
     char *argv[] = {"100000000000000"};
     if (test_mm(1, argv) == -1){

@@ -6,8 +6,9 @@
 
 #define CHUNK_SIZE 10
 #define CHUNK_COUNT 10
+#define MEM_START 0x300000
 
-void *mem_init(void *p, int s);
+void *mem_init(int s);
 
 void *mem_alloc(uint32_t s);
 

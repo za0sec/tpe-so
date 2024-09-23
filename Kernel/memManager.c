@@ -5,13 +5,14 @@ void * start;
 int size, current;
 void * free_ptrs[CHUNK_COUNT];
 
-void *mem_init(void *p, int s){
-    start = p;
+void *mem_init(int s){
+    start = (void*)MEM_START;
     size = s;
     current = 0;
     for(int i = 0; i < CHUNK_COUNT; i++){
         free_ptrs[i] = start + i * CHUNK_SIZE;
     }
+    return start;
 }
 
 void *mem_alloc(uint32_t s){
