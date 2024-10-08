@@ -19,3 +19,8 @@
 
 #Object files
 *.o
+
+#pina
+PDF/
+
+Linux.utm/
