@@ -15,6 +15,7 @@ GLOBAL excRegData
 GLOBAL registerInfo
 GLOBAL hasregisterInfo
 
+EXTERN tick_handler
 EXTERN timer_handler
 EXTERN keyboard_handler
 EXTERN syscall_dispatcher
@@ -181,6 +182,7 @@ interrupt_keyboardHandler:
 interrupt_timerHandler:
 	pushState
 
+	call tick_handler
 	call timer_handler
 
 	endOfHardwareInterrupt
@@ -218,3 +220,4 @@ SECTION .bss
 	registerInfo	resq	17
 	hasregisterInfo 		resb 1
 	shiftKey  	resb 1
+
