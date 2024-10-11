@@ -1,15 +1,13 @@
 #include <stdint.h>
 #include <string.h>
-#include "lib.h"
+#include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
-#include "videoDriver.h"
-#include "keyboard.h"
-#include "idtLoader.h"
-#include "time.h"
-#include "interrupts.h"
-
-
+#include <videoDriver.h>
+#include <keyboard.h>
+#include <idtLoader.h>
+#include <time.h>
+#include <interrupts.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
