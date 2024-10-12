@@ -1,0 +1,77 @@
+#include <scheduler.h>
+#include <memManager.h>
+#include <pcb_queue.h>
+#define MAX_PROCESSES 10
+
+struct PCB processes[MAX_PROCESSES];
+uint64_t currentPID = 0;
+pcb_t current_process;
+q_adt process_queue = NULL;
+
+uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]){
+    uint64_t sp = mem_alloc(STACK_SIZE);
+    fill_stack(sp, &initProcessWrapper, program, argc, argv);
+    pcb_t new_process = {
+                        currentPID++,       //pid
+                        sp,                 //rsp
+                        DEFAULT_QUANTUM,    //assigned_quantum
+                        0,                  //used_quantum
+                        READY               //state
+                        };
+    add(process_queue, new_process);
+}
+
+//                            RDI             RSI            RDX      
+void initProcessWrapper(program_t program, uint64_t argc, char *argv[]){
+    uint64_t ret_value = program(argc, argv);
+    if(ret_value != 0){
+        // TODO: handle error
+    }
+    current_process.state = TERMINATED;
+    exit(1);
+}
+
+void init_schedule(){
+    process_queue = new_q();    
+    //Create process terminal
+}
+
+uint64_t schedule(uint64_t running_process_rsp){
+    //Es la primera ejecucion de schedule (Esto deberia manejarse distinto, por ejemplo el kernel ejecuta como primer proceso un init_scheduler)
+    if(process_queue == NULL){
+        init_schedule();
+    }
+
+    current_process.rsp = running_process_rsp;
+    if(current_process.state == RUNNING){
+        current_process.used_quantum++;
+        if(current_process.used_quantum < current_process.assigned_quantum){
+            return current_process.rsp;
+        } else {
+            current_process.state = READY;
+            current_process.assigned_quantum--;
+
+            if(current_process.assigned_quantum <= 0){
+                current_process.assigned_quantum = CPU_BOUND_QUANTUM;
+            }
+
+            current_process.used_quantum = 0;
+            add(process_queue, current_process);
+        }
+    } else if (current_process.state == BLOCKED){
+        if(current_process.assigned_quantum <= IO_BOUND_QUANTUM){
+            current_process.assigned_quantum++;
+        }
+        add(process_queue, current_process);
+        
+    }         
+    
+    if(!has_next(process_queue)){
+        //Create process halt
+    } else {
+        current_process = dequeue(process_queue);
+        current_process.state = RUNNING;
+    }
+
+    return current_process.rsp;
+}
