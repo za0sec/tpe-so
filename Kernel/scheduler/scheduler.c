@@ -8,6 +8,10 @@ q_adt process_queue = NULL;
 q_adt blocked_queue = NULL;
 
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]){
+    return create_process_state(priority, program, READY, argc, argv);
+}
+
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]){
     uint64_t sp = mem_alloc(STACK_SIZE);
     fill_stack(sp, &initProcessWrapper, program, argc, argv);
     pcb_t new_process = {
@@ -15,7 +19,7 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
                         sp + STACK_SIZE,    //rsp
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
-                        READY               //state
+                        state               //state
                         };
     add(process_queue, new_process);
     return new_process.pid;
@@ -25,7 +29,6 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
 void initProcessWrapper(program_t program, uint64_t argc, char *argv[]){
     uint64_t ret_value = program(argc, argv);
     if(ret_value != 0){
-        // TODO: handle error
     }
     current_process.state = TERMINATED;
     //TODO: Aca deberia haber un exit(1) no??
@@ -38,12 +41,57 @@ void halt(){
 }
 
 void create_process_halt(){
-    create_process(0, &halt, 0, NULL);
+    create_process_state(0, &halt, TERMINATED, 0, NULL);
 }
 
 void init_scheduler(){
     process_queue = new_q();    
     blocked_queue = new_q();
+}
+
+void get_pid(){
+    return current_process.pid;
+}
+
+void list_processes(char *buf){
+    // 8 char para el state, 3 para el pid, 1 para un espacio, 1 para el newline
+    buf = mem_alloc(10 + (get_size(process_queue) + get_size(blocked_queue)) * 13);
+    sprintf(buf, "PID | STATE\n");
+    while(has_next(process_queue)){
+        pcb_t process = dequeue(process_queue);
+        sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
+    }
+     while(has_next(blocked_queue)){
+        pcb_t process = dequeue(process_queue);
+        sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
+    }
+}
+
+void kill_process(uint64_t pid){
+    pcb_t process;
+    if( (process = find_dequeue_pid(process_queue, pid)).pid > 0 || (process = find_dequeue_pid(blocked_queue, pid)).pid > 0){
+        process.state = TERMINATED;
+    }
+}
+
+void block_process(uint64_t pid){
+    pcb_t process;
+    if( (process = find_dequeue_pid(process_queue, pid)).pid > 0){
+        process.state = BLOCKED;
+        add(blocked_queue, process);
+    }
+}
+
+void unblock_process(uint64_t pid){
+    pcb_t process;
+    if( (process = find_dequeue_pid(blocked_queue, pid)).pid > 0){
+        process.state = READY;
+        add(process_queue, process);
+    }
+}
+
+void yield(){
+    current_process.state = READY;
 }
 
 uint64_t schedule(uint64_t running_process_rsp){
@@ -60,6 +108,7 @@ uint64_t schedule(uint64_t running_process_rsp){
             current_process.assigned_quantum--;
 
             if(current_process.assigned_quantum <= 0){
+                //Esto deberia ser decrementar LA PRIORIDAD
                 current_process.assigned_quantum = CPU_BOUND_QUANTUM;
             }
 
@@ -67,6 +116,7 @@ uint64_t schedule(uint64_t running_process_rsp){
         }
     } else if (current_process.state == BLOCKED){
         if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
+            //Esto deberia ser aumentar LA PRIORIDAD
             current_process.assigned_quantum++;
         }
         add(blocked_queue, current_process);        
@@ -76,6 +126,7 @@ uint64_t schedule(uint64_t running_process_rsp){
     } 
     
     if(!has_next(process_queue)){
+        //TODO: El halt queda para siempre en la cola
         create_process_halt();
     }
     current_process = dequeue(process_queue);

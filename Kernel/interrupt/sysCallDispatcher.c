@@ -4,6 +4,8 @@
 #include <time.h>
 #include <sound.h>
 #include <memManager.h>
+#include <stdint.h>
+#include <scheduler.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -160,6 +162,46 @@ static void * sys_mem_init(int s){
     return mem_init(s);
 }
 
+/*
+DONE Crear y finalizar un proceso. deberá soportar el pasaje de parámetros.
+DONE Obtener el ID del proceso que llama.
+DONE Listar todos los procesos: nombre, ID, prioridad, stack y base pointer, foreground y
+cualquier otra variable que consideren necesaria.
+DONE Matar un proceso arbitrario.
+TODO: Modificar la prioridad de un proceso arbitrario.
+DONE Bloquear y desbloquear un proceso arbitrario.
+DONE (Dudosa implementacion en scheduler.c) Renunciar al CPU.
+TODO: Esperar a que los hijos terminen.
+*/
+
+static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]){
+    return create_process(priority, program, argc, argv);
+}
+
+static void sched_kill_process(uint64_t pid){
+    kill_process(pid);
+}
+
+static uint64_t sched_getPID(){
+    return get_pid();
+}
+
+static void sched_list_processes(char *buf){
+    list_processes(buf);
+}
+
+static void sched_block_process(uint64_t pid){
+    block_process(pid);
+}
+
+static void sched_unblock_process(uint64_t pid){
+    unblock_process(pid);
+}
+
+static void sched_yield(){
+    yield();
+}
+
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax)
 {
     uint8_t r, g, b;
@@ -223,6 +265,25 @@ uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r
         return 0;
     case 20:
         return (uint64_t)sys_mem_init(rdi);
+    case 21:
+        return sched_create_process(rdi, (program_t)rsi, rdx, (char **)r10);
+    case 22:
+        sched_kill_process(rdi);
+        return 0;
+    case 23:
+        return sched_getPID();
+    case 24:
+        sched_list_processes((char *)rdi);
+        return 0;
+    case 25:
+        sched_block_process(rdi);
+        return 0;
+    case 26:
+        sched_unblock_process(rdi);
+        return 0;
+    case 27:
+        sched_yield();
+        return 0;
     default:
         return 0;
     }

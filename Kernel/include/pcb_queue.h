@@ -23,6 +23,10 @@ typedef struct pcb {
 // Estructura para manejar la cola
 typedef struct q_cdt * q_adt;
 
+size_t get_size(q_adt q);
+
+pcb_t find_dequeue_pid(q_adt q, uint64_t pid);
+
 // Funciones de la cola
 /**
  * @brief Crea una nueva cola circular doblemente enlazada
