@@ -167,3 +167,126 @@ Imagina que tienes tres colas de prioridad: 1 (alta), 2 (media), y 3 (baja).
 * Lo que permite que los procesos de menor prioridad eventualmente se ejecuten es:
   1. **Envejecimiento (aging)** de los procesos de menor prioridad, que incrementa su prioridad con el tiempo.
   2. **Degradación** de los procesos de mayor prioridad que consumen mucho tiempo de CPU, moviéndolos a colas de menor prioridad.
+
+# Cola de bloqueados
+
+Sí, almacenar los procesos bloqueados en una segunda cola es una buena idea y es una práctica común en los sistemas operativos. Al tener una **segunda cola** específica para procesos bloqueados, puedes gestionar los procesos que están esperando por algún evento de manera más eficiente. Esto te permite separar los procesos que están listos para ejecutarse de aquellos que están esperando por I/O u otro evento.
+
+### Beneficios de usar una cola para procesos bloqueados:
+
+1. **Separación de responsabilidades** :
+
+* Mantienes la **cola de procesos listos** (`process_queue`) solo con los procesos que pueden ejecutarse inmediatamente.
+* Los procesos en estado **`BLOCKED`** no necesitan ser evaluados constantemente por el scheduler, ya que no pueden ser ejecutados hasta que el evento que los bloquea se resuelva.
+
+1. **Mejora de la eficiencia** :
+
+* Evitas que el scheduler tenga que verificar constantemente el estado de los procesos bloqueados en cada iteración, lo cual sería ineficiente.
+* Solo cuando un proceso bloqueado se desbloquea, lo mueves a la cola de listos (`process_queue`), y el scheduler lo podrá ejecutar.
+
+1. **Mejor manejo del estado** :
+
+* Puedes manejar el desbloqueo de procesos de manera más sencilla: cuando un evento de I/O u otro recurso se desbloquea, puedes simplemente mover el proceso correspondiente de la cola de bloqueados a la cola de listos.
+
+### Implementación sugerida:
+
+#### 1. Crear una cola separada para procesos bloqueados:
+
+Puedes crear una segunda cola, similar a `process_queue`, para almacenar los procesos bloqueados.
+
+<pre class="!overflow-visible"><div class="dark bg-gray-950 contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative"><div class="flex items-center text-token-text-secondary bg-token-main-surface-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-main-surface-secondary px-2 font-sans text-xs text-token-text-secondary"><span class="" data-state="closed"><button class="flex gap-1 items-center py-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-sm"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>Copy code</button></span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c">q_adt blocked_queue = NULL;
+</code></div></div></pre>
+
+#### 2. Modificar el scheduler para mover procesos a la cola de bloqueados:
+
+Cuando un proceso cambia su estado a  **`BLOCKED`** , en lugar de reinsertarlo en la cola de listos, lo mueves a la cola de bloqueados.
+
+<pre class="!overflow-visible"><div class="dark bg-gray-950 contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative"><div class="flex items-center text-token-text-secondary bg-token-main-surface-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-main-surface-secondary px-2 font-sans text-xs text-token-text-secondary"><span class="" data-state="closed"><button class="flex gap-1 items-center py-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-sm"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>Copy code</button></span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c">if (current_process.state == BLOCKED) {
+    // Mover el proceso a la cola de bloqueados en lugar de la de listos
+    add(blocked_queue, current_process);
+}
+</code></div></div></pre>
+
+#### 3. Manejar el desbloqueo de procesos:
+
+Cuando un proceso bloqueado es desbloqueado (por ejemplo, porque terminó un evento de I/O), lo mueves de la cola de bloqueados a la cola de listos.
+
+Puedes tener una función que recorra la cola de procesos bloqueados y verifique si algún evento ha desbloqueado los procesos.
+
+<pre class="!overflow-visible"><div class="dark bg-gray-950 contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative"><div class="flex items-center text-token-text-secondary bg-token-main-surface-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-main-surface-secondary px-2 font-sans text-xs text-token-text-secondary"><span class="" data-state="closed"><button class="flex gap-1 items-center py-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-sm"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>Copy code</button></span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c">void check_blocked_processes() {
+    q_adt temp_queue = new_q();  // Cola temporal para almacenar los procesos que no se desbloquearon
+    while (has_next(blocked_queue)) {
+        pcb_t blocked_process = dequeue(blocked_queue);
+        if (event_unblocked(blocked_process)) {
+            blocked_process.state = READY;
+            add(process_queue, blocked_process);  // Mover a la cola de listos
+        } else {
+            add(temp_queue, blocked_process);  // Mantener en la cola de bloqueados
+        }
+    }
+    // Reemplazar la cola de bloqueados con la cola temporal
+    free_q(blocked_queue);
+    blocked_queue = temp_queue;
+}
+</code></div></div></pre>
+
+#### 4. Modificar `schedule()` para manejar bloqueos:
+
+En el `schedule()`, antes de elegir el siguiente proceso, puedes llamar a `check_blocked_processes()` para mover procesos desbloqueados a la cola de listos.
+
+<pre class="!overflow-visible"><div class="dark bg-gray-950 contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative"><div class="flex items-center text-token-text-secondary bg-token-main-surface-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9">c</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-main-surface-secondary px-2 font-sans text-xs text-token-text-secondary"><span class="" data-state="closed"><button class="flex gap-1 items-center py-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-sm"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>Copy code</button></span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-c">uint64_t schedule(uint64_t running_process_rsp) {
+    if (process_queue == NULL) {
+        init_schedule();
+    }
+
+    // Guardar el RSP del proceso actual
+    current_process.rsp = running_process_rsp;
+
+    // Manejar el estado del proceso actual
+    if (current_process.state == RUNNING) {
+        current_process.used_quantum++;
+        if (current_process.used_quantum < current_process.assigned_quantum) {
+            return current_process.rsp;
+        } else {
+            current_process.state = READY;
+            current_process.used_quantum = 0;
+            current_process.assigned_quantum--;
+            add(process_queue, current_process);
+        }
+    } else if (current_process.state == BLOCKED) {
+        add(blocked_queue, current_process);
+    } else if (current_process.state == TERMINATED) {
+        cleanup_process(&current_process);
+    }
+
+    // Verificar si hay procesos bloqueados que puedan desbloquearse
+    check_blocked_processes();
+
+    // Obtener el siguiente proceso listo para ejecutar
+    if (!has_next(process_queue)) {
+        create_halt_process();
+    } else {
+        current_process = dequeue(process_queue);
+        current_process.state = RUNNING;
+    }
+
+    return current_process.rsp;
+}
+</code></div></div></pre>
+
+#### 5. Desbloqueo basado en eventos:
+
+Tu implementación necesitará algún mecanismo para desbloquear procesos. Por ejemplo, si estás esperando por I/O, una interrupción podría llamar a `check_blocked_processes()` para revisar si algún proceso puede desbloquearse.
+
+Este desbloqueo puede ocurrir como respuesta a una interrupción de hardware, un temporizador o cualquier otro evento que el proceso esté esperando.
+
+#### 6. Resumen del flujo:
+
+1. Los procesos bloqueados se almacenan en una cola separada.
+2. Cada vez que el `schedule()` se ejecuta, verifica si hay procesos que puedan ser desbloqueados.
+3. Si un proceso se desbloquea, se mueve de la cola de bloqueados a la cola de listos.
+4. El scheduler sigue funcionando con los procesos listos, y solo revisa la cola de bloqueados cuando un evento puede desbloquear algún proceso.
+
+### Conclusión:
+
+Almacenar los procesos bloqueados en una segunda cola (como `blocked_queue`) te permitirá gestionar mejor los procesos que esperan por eventos, evitando que el scheduler tenga que revisar continuamente procesos que no pueden ser ejecutados. Esta mejora hará que tu sistema de planificación sea más eficiente y modular, facilitando el manejo de procesos en diferentes estados (`READY`, `RUNNING`, `BLOCKED`, `TERMINATED`).

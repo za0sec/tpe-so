@@ -8,6 +8,9 @@
 
 #include <stdint.h>
 
+void asm_cli();
+void asm_sti();
+void asm_halt();
 void tick_handler();
 uint64_t schedule(uint64_t running_process_rsp);
 typedef int64_t (*program_t)(uint64_t argc, char *argv[]);

@@ -4,9 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CHUNK_SIZE 10
+#define CHUNK_SIZE 16
 #define CHUNK_COUNT 4096
 #define MEM_START 0x300000
+#define WORD_ALIGN 8
+#define ALIGN_POINTER(ptr, alignment) \
+    ((uintptr_t)(ptr) + ((alignment) - ((uintptr_t)(ptr) % (alignment))))
 
 void *mem_init(int s);
 

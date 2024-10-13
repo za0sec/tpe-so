@@ -1,4 +1,5 @@
 global tick_handler
+global asm_halt
 extern schedule
 section .text
 
@@ -39,4 +40,16 @@ fill_stack:
     mov rsp, rbp
     pop rbp
 
+    ret
+
+asm_halt:
+    hlt
+    ret
+
+asm_cli:
+    cli
+    ret
+
+asm_sti:
+    sti
     ret
