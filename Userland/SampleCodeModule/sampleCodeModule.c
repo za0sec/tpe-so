@@ -3,7 +3,7 @@
 #include <userlib.h>
 #include <kitty.h>
 
-int main() {
+int main(uint64_t argc, char *argv[]) {
 	welcome();
 
 	kitty();

@@ -17,6 +17,4 @@ void *mem_alloc(uint32_t s);
 
 void mem_free(void *ptr);
 
-void fill_stack(uint64_t sp);
-
 #endif // _MEM_MANAGER_H_

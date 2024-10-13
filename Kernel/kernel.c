@@ -8,6 +8,7 @@
 #include <idtLoader.h>
 #include <time.h>
 #include <interrupts.h>
+#include <scheduler.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -25,7 +26,6 @@ static void * const sampleDataModuleAddress = (void*)0x500000;
 static void * const memManagerModuleAddress = (void*)0x300000;
 
 typedef int (*EntryPoint)();
-
 
 void clearBSS(void * bssAddress, uint64_t bssSize)
 {
@@ -61,7 +61,8 @@ int main()
 	load_idt();
 
 	setCeroChar();
-    ((EntryPoint)sampleCodeModuleAddress)();
+	init_scheduler();
+	create_process(5, sampleCodeModuleAddress, 0, NULL);
 
     while(1) _hlt();
     return 0;

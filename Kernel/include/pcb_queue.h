@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 typedef struct q_cdt * q_adt;
 
@@ -18,16 +19,6 @@ typedef struct pcb {
         TERMINATED
     } state;
 } pcb_t;
-
-// Define los tipos de estructuras necesarias
-typedef struct node * q_t;
-
-// Estructura del nodo de la cola
-typedef struct node {
-    pcb_t pcb;             // Información del proceso
-    struct node *next;     // Puntero al siguiente nodo
-    struct node *prev;     // Puntero al nodo anterior
-} node_t;
 
 // Estructura para manejar la cola
 typedef struct q_cdt * q_adt;

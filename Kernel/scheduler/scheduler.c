@@ -1,9 +1,7 @@
 #include <scheduler.h>
 #include <memManager.h>
 #include <pcb_queue.h>
-#define MAX_PROCESSES 10
 
-struct PCB processes[MAX_PROCESSES];
 uint64_t currentPID = 0;
 pcb_t current_process;
 q_adt process_queue = NULL;
@@ -20,6 +18,7 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
                         READY               //state
                         };
     add(process_queue, new_process);
+    return new_process.pid;
 }
 
 //                            RDI             RSI            RDX      
@@ -29,11 +28,7 @@ void initProcessWrapper(program_t program, uint64_t argc, char *argv[]){
         // TODO: handle error
     }
     current_process.state = TERMINATED;
-    exit(1);
-}
-
-void create_process_halt(){
-    create_process(0, &halt, 0, NULL);
+    //TODO: Aca deberia haber un exit(1) no??
 }
 
 void halt(){
@@ -42,19 +37,17 @@ void halt(){
     }
 }
 
-void init_schedule(){
+void create_process_halt(){
+    create_process(0, &halt, 0, NULL);
+}
+
+void init_scheduler(){
     process_queue = new_q();    
     blocked_queue = new_q();
-    //Create process terminal
 }
 
 uint64_t schedule(uint64_t running_process_rsp){
     asm_cli();
-
-    //Es la primera ejecucion de schedule (Esto deberia manejarse distinto, por ejemplo el kernel ejecuta como primer proceso un init_scheduler)
-    if(process_queue == NULL){
-        init_schedule();
-    }
 
     current_process.rsp = running_process_rsp;
     if(current_process.state == RUNNING){
