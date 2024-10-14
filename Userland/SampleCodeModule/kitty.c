@@ -6,7 +6,7 @@
 #include <eliminator.h>
 #include <kitty.h>
 #include <ascii.h>
-
+#include <tests.h>
 // initialize all to 0
 char line[MAX_BUFF + 1] = {0};
 char parameter[MAX_BUFF + 1] = {0};
@@ -176,8 +176,6 @@ void cmd_whoami()
 
 void cmd_memtest()
 {
-    sys_mem_init(CHUNK_SIZE * CHUNK_COUNT);
-
     char *argv[] = {"100000000000000"};
     if (test_mm(1, argv) == -1){
 		printsColor("test_mm ERROR\n", MAX_BUFF, RED);
@@ -186,7 +184,10 @@ void cmd_memtest()
 
 void cmd_schetest()
 {
-    test_scheduler();
+    char *argv[] = {"10"};
+    if (test_processes(1, argv) == -1){
+		printsColor("test_processes ERROR\n", MAX_BUFF, RED);
+	}
 }
 
 void cmd_help()

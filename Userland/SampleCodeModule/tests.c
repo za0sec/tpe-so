@@ -88,6 +88,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
       p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
+      prints("process n: %d\n", rq);
 
       if (p_rqs[rq].pid == -1) {
         prints("test_processes: ERROR creating process\n", MAX_BUFF);
