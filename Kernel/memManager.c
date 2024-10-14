@@ -26,12 +26,17 @@ void *mem_alloc(uint32_t s) {
 
     // Verificar si después de la alineación el bloque tiene suficiente espacio para 's' bytes
     if ((uintptr_t)aligned_ptr + s > (uintptr_t)free_ptrs[current] + CHUNK_SIZE) {
-        return NULL;
+        current++; 
+        if (current >= CHUNK_COUNT) {
+            return NULL;  
+        }
+        aligned_ptr = (void *)ALIGN_POINTER(free_ptrs[current], WORD_ALIGN);
     }
 
     current++;
     return aligned_ptr;
 }
+
 
 
 void mem_free(void *ptr){

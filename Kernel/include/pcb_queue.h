@@ -9,7 +9,7 @@ typedef struct q_cdt * q_adt;
 
 typedef struct pcb {
     uint64_t pid;
-    uint64_t rsp;
+    void *rsp;
     int assigned_quantum;
     int used_quantum;
     enum {

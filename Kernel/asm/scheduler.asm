@@ -57,7 +57,7 @@ tick_handler:
     out 0x20, al
 
     popState
-
+    pop rax
     iretq
 
 fill_stack:

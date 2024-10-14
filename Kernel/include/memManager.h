@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 128
 #define CHUNK_COUNT 4096
 #define MEM_START 0x300000
 #define WORD_ALIGN 8

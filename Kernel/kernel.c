@@ -9,6 +9,7 @@
 #include <time.h>
 #include <interrupts.h>
 #include <scheduler.h>
+#include <memManager.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -58,12 +59,16 @@ void * initializeKernelBinary()
 
 int main()
 {	
+	_cli();
 	load_idt();
-
 	setCeroChar();
+
+	mem_init(memManagerModuleAddress);
+
 	init_scheduler();
 	create_process(5, sampleCodeModuleAddress, 0, NULL);
-
+	_sti();
+	
     while(1) _hlt();
     return 0;
 }

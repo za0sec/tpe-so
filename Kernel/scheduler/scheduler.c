@@ -7,16 +7,20 @@ pcb_t current_process;
 q_adt process_queue = NULL;
 q_adt blocked_queue = NULL;
 
+// Retorna -1 por error
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]){
     return create_process_state(priority, program, READY, argc, argv);
 }
 
+// Retorna -1 por error
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]){
-    uint64_t sp = mem_alloc(STACK_SIZE);
+    void *sp = mem_alloc(STACK_SIZE);
+    if(sp == NULL) return -1;
+    sp += STACK_SIZE;
     fill_stack(sp, &initProcessWrapper, program, argc, argv);
     pcb_t new_process = {
                         currentPID++,       //pid
-                        sp + STACK_SIZE,    //rsp
+                        sp,    //rsp
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         state               //state
@@ -47,6 +51,7 @@ void create_process_halt(){
 void init_scheduler(){
     process_queue = new_q();    
     blocked_queue = new_q();
+    current_process = (pcb_t){0, 0, DEFAULT_QUANTUM, 0, TERMINATED};   // El primer proceso seria el kernel 
 }
 
 uint64_t get_pid(){
@@ -94,7 +99,7 @@ void yield(){
     current_process.state = READY;
 }
 
-uint64_t schedule(uint64_t running_process_rsp){
+uint64_t schedule(void *running_process_rsp){
     asm_cli();
 
     current_process.rsp = running_process_rsp;
