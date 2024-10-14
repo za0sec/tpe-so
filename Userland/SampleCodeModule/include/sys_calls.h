@@ -51,4 +51,22 @@ void sys_mem_free(void * ptr);
 
 void * sys_mem_init(int s);
 
+uint64_t sys_create_process(char *name, void *program, int argc, char **argv);
+
+uint64_t sys_kill(uint64_t pid);
+
+uint64_t sys_getPID();
+
+uint64_t sys_list_processes(char *buffer);
+
+uint64_t sys_block(uint64_t pid);
+
+uint64_t sys_unblock(uint64_t pid);
+
+uint64_t sys_yield();
+
+
+
+
+
 #endif
