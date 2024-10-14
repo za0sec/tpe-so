@@ -14,13 +14,13 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
 
 // Retorna -1 por error
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]){
-    void *sp = mem_alloc(STACK_SIZE);
-    if(sp == NULL) return -1;
-    sp += STACK_SIZE;
-    fill_stack(sp, &initProcessWrapper, program, argc, argv);
+    void *base_pointer = mem_alloc(STACK_SIZE);
+    if(base_pointer == NULL) return -1;
+    // sp += STACK_SIZE;
+    void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
     pcb_t new_process = {
                         currentPID++,       //pid
-                        sp,    //rsp
+                        stack_pointer,      //rsp
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         state               //state

@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CHUNK_SIZE 128
-#define CHUNK_COUNT 4096
+#define CHUNK_SIZE 4096
+#define CHUNK_COUNT 32768
 #define MEM_START 0x300000
 #define WORD_ALIGN 8
 #define ALIGN_POINTER(ptr, alignment) \

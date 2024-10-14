@@ -8,41 +8,39 @@ extern schedule
 section .text
 
 %macro pushState 0
-    push rax
-    push rbx
-    push rcx
-    push rdx
-    push rsi
-    push rdi
-    push rbp
-    push r8
-    push r9
-    push r10
-    push r11
-    push r12
-    push r13
-    push r14
-    push r15
-    pushfq        ; Guarda el registro de banderas (flags)
+	push rax
+	push rbx
+	push rcx
+	push rdx
+	push rbp
+	push rdi
+	push rsi
+	push r8
+	push r9
+	push r10
+	push r11
+	push r12
+	push r13
+	push r14
+	push r15
 %endmacro
 
 %macro popState 0
-    popfq         ; Restaura el registro de banderas (flags)
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-    pop rbp
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rsi
+	pop rdi
+	pop rbp
+	pop rdx
+	pop rcx
+	pop rbx
+	pop rax
 %endmacro
 
 tick_handler:
@@ -57,7 +55,7 @@ tick_handler:
     out 0x20, al
 
     popState
-    pop rax
+    ;pop rax ; debug a ver si esta el RIP de initProcessWrapper
     iretq
 
 fill_stack:
@@ -67,16 +65,17 @@ fill_stack:
     mov rsp, rdi
 
     push 0x0
-    push rsi        ;   SP
+    push rdi        ;   SP
     push 0x202      ;   RFLAGS
     push 0x8        ;   CS
                     ;   > Preparo argumentos para initProcessWrapper 
-    mov rdi, rdx    ;   program
-    mov rsi, rcx    ;   argc
-    mov rdx, r8     ;   argv
     push rsi        ;   RIP = initProcessWrapper
-    pushState       ;   Cargo algun estado de registros
-
+    mov rdi, rdx    ;   program (cargo argumento)
+    mov rsi, rcx    ;   argc    (cargo argumento)
+    mov rdx, r8     ;   argv    (cargo argumento)
+    pushState       ;   Cargo el estado de registros (que incluye los args para initProcessWrapper)
+    mov rax, rsp    ;   RETURN NEW RSP
+    
     mov rsp, rbp
     pop rbp
 

@@ -364,7 +364,7 @@ void welcome()
 		{466, 900}	// A#4
 	};
 
-	playMelody(windowsXPmelody, (sizeof(windowsXPmelody) / sizeof(NoteType)));
+	// playMelody(windowsXPmelody, (sizeof(windowsXPmelody) / sizeof(NoteType)));
 
 	printsColor("\n    Welcome to PIBES OS, an efficient and simple operating system\n", MAX_BUFF, GREEN);
 	printsColor("    Developed by the PIBES team\n", MAX_BUFF, GREEN);
