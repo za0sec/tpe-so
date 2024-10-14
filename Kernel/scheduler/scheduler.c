@@ -49,21 +49,21 @@ void init_scheduler(){
     blocked_queue = new_q();
 }
 
-void get_pid(){
+uint64_t get_pid(){
     return current_process.pid;
 }
 
 void list_processes(char *buf){
     // 8 char para el state, 3 para el pid, 1 para un espacio, 1 para el newline
     buf = mem_alloc(10 + (get_size(process_queue) + get_size(blocked_queue)) * 13);
-    sprintf(buf, "PID | STATE\n");
+    // sprintf(buf, "PID | STATE\n");
     while(has_next(process_queue)){
         pcb_t process = dequeue(process_queue);
-        sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
+        // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
     }
      while(has_next(blocked_queue)){
         pcb_t process = dequeue(process_queue);
-        sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
+        // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
     }
 }
 

@@ -23,11 +23,12 @@ void init_scheduler();
 q_adt init_schedule();
 
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]);
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]);
 void kill_process(uint64_t pid);
 void list_processes(char *buf);
 void block_process(uint64_t pid);
 void unblock_process(uint64_t pid);
-void get_PID();
+uint64_t get_pid();
 void yield();
 
 #endif

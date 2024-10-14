@@ -1,6 +1,8 @@
 include Makefile.inc
 
-KERNEL=kernel.bin
+KERNEL_BIN=kernel.bin
+KERNEL_ELF=kernel.elf
+
 SOURCES=$(wildcard *.c)
 SOURCES_ASM=$(wildcard asm/*.asm)
 SOURCES_DRIVERS=$(wildcard drivers/*.c)
@@ -14,17 +16,22 @@ OBJECTS_DRIVERS=$(SOURCES_DRIVERS:.c=.o)
 OBJECTS_SCHEDULER=$(SOURCES_SCHEDULER:.c=.o)
 
 LOADERSRC=loader.asm
-
 LOADEROBJECT=$(LOADERSRC:.asm=.o)
-STATICLIBS=
-ALL_OBJECTS= $(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(OBJECTS_INTERRUPT) $(OBJECTS_DRIVERS) $(OBJECTS_SCHEDULER)
 
-all: $(KERNEL)
-$(KERNEL): $(STATICLIBS) $(ALL_OBJECTS)
+STATICLIBS=
+ALL_OBJECTS=$(LOADEROBJECT) $(OBJECTS) $(OBJECTS_ASM) $(OBJECTS_INTERRUPT) $(OBJECTS_DRIVERS) $(OBJECTS_SCHEDULER)
+
+all: $(KERNEL_BIN) $(KERNEL_ELF)
+
+$(KERNEL_ELF): $(STATICLIBS) $(ALL_OBJECTS)
 	$(LD) $(LDFLAGS) -T kernel.ld -o $@ $^
+
+$(KERNEL_BIN): $(KERNEL_ELF)
+	objcopy -O binary $(KERNEL_ELF) $(KERNEL_BIN)
 
 %.o: %.c
 	$(GCC) $(GCCFLAGS) -I./include -I./interruptions -c $< -o $@
+
 %.o : %.asm
 	$(ASM) $(ASMFLAGS) $< -o $@
 
@@ -32,7 +39,6 @@ $(LOADEROBJECT):
 	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
 
 clean:
-	rm -rf $(ALL_OBJECTS) *.bin
+	rm -rf $(ALL_OBJECTS) *.bin *.elf
 
 .PHONY: all clean
-
