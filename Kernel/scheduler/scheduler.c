@@ -72,26 +72,36 @@ void list_processes(char *buf){
     }
 }
 
-void kill_process(uint64_t pid){
+uint64_t kill_process(uint64_t pid){
     pcb_t process;
-    if( (process = find_dequeue_pid(process_queue, pid)).pid > 0 || (process = find_dequeue_pid(blocked_queue, pid)).pid > 0){
-        process.state = TERMINATED;
+    if(current_process.pid == pid){
+        current_process.state = TERMINATED;
+    } else if( (process = find_dequeue_pid(process_queue, pid)).pid > 0 || (process = find_dequeue_pid(blocked_queue, pid)).pid > 0 ){
+        mem_free(process.rsp);
+    } else {
+        return -1;
     }
 }
 
-void block_process(uint64_t pid){
+uint64_t block_process(uint64_t pid){
     pcb_t process;
-    if( (process = find_dequeue_pid(process_queue, pid)).pid > 0){
+    if(current_process.pid == pid){
+        current_process.state = BLOCKED;
+    } else if( (process = find_dequeue_pid(process_queue, pid)).pid > 0){
         process.state = BLOCKED;
         add(blocked_queue, process);
+    } else {
+        return -1;
     }
 }
 
-void unblock_process(uint64_t pid){
+uint64_t unblock_process(uint64_t pid){
     pcb_t process;
     if( (process = find_dequeue_pid(blocked_queue, pid)).pid > 0){
         process.state = READY;
         add(process_queue, process);
+    } else {
+        return -1;
     }
 }
 

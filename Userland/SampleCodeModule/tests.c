@@ -84,20 +84,25 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
   p_rq p_rqs[max_processes];
 
   while (1) {
-
+    prints("======================= Starting test=======================\n", MAX_BUFF);
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
-      p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
-      prints("process n: %d\n", rq);
+      // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
+      p_rqs[rq].pid = sys_create_process(5, &endless_loop, 0, argvAux);
 
       if (p_rqs[rq].pid == -1) {
         prints("test_processes: ERROR creating process\n", MAX_BUFF);
         return -1;
       } else {
+        prints("[test_processes] Process created with pid\n", MAX_BUFF);
         p_rqs[rq].state = RUNNING;
         alive++;
       }
     }
+
+    char buffer[4096];
+    sys_list_processes(buffer);
+    prints(buffer, 4096);
 
     // Randomly kills, blocks or unblocks processes until every one has been killed
     while (alive > 0) {
@@ -112,6 +117,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
                 prints("test_processes: ERROR killing process\n", MAX_BUFF);
                 return -1;
               }
+              prints("[test_processes] Process killed\n", MAX_BUFF);
               p_rqs[rq].state = KILLED;
               alive--;
             }
@@ -124,6 +130,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
                 return -1;
               }
               p_rqs[rq].state = BLOCKED;
+              prints("[test_processes] Process blocked\n", MAX_BUFF);
             }
             break;
         }
@@ -136,6 +143,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
             prints("test_processes: ERROR unblocking process\n", MAX_BUFF);
             return -1;
           }
+          prints("[test_processes] Process unblocked\n", MAX_BUFF);
           p_rqs[rq].state = RUNNING;
         }
     }

@@ -9,6 +9,8 @@
    %rdi %rsi %rdx %rcx %r8 %r9
  */
 
+typedef uint64_t (*program_t)(uint64_t argc, char *argv[]);
+
 uint64_t sys_scrWidth();
 
 uint64_t sys_drawRectangle(int x, int y, int x2, int y2, Color color);
@@ -51,7 +53,7 @@ void sys_mem_free(void * ptr);
 
 void * sys_mem_init(int s);
 
-uint64_t sys_create_process(char *name, void *program, int argc, char **argv);
+uint64_t sys_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
 
 uint64_t sys_kill(uint64_t pid);
 
@@ -64,8 +66,6 @@ uint64_t sys_block(uint64_t pid);
 uint64_t sys_unblock(uint64_t pid);
 
 uint64_t sys_yield();
-
-
 
 
 
