@@ -58,9 +58,9 @@ static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cm
 
 void kitty()
 {
+	welcome();
 	char c;
 	printPrompt();
-
 	while (1 && !terminate)
 	{
 		drawCursor();
@@ -187,9 +187,7 @@ void cmd_memtest()
 void cmd_schetest()
 {
     char *argv[] = {"10"};
-    if (test_processes(1, argv) == -1){
-		printsColor("test_processes ERROR\n", MAX_BUFF, RED);
-	}
+	sys_create_process(1, &test_processes, 1, argv);
 }
 
 void cmd_priotest(){
@@ -392,4 +390,5 @@ void welcome()
 	printsColor("    Developed by the PIBES team\n", MAX_BUFF, GREEN);
 	printsColor("    Here's a list of available commands\n", MAX_BUFF, GREEN);
 	printHelp();
+	return 0;
 }

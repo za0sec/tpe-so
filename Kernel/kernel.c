@@ -56,6 +56,23 @@ void * initializeKernelBinary()
 	return getStackBase();
 }
 
+void test_process_1(){
+	while(1){
+		vDriver_prints("1", WHITE, BLACK);
+	}
+}
+
+void test_process_2(){
+	while(1){
+		vDriver_prints("2", BLACK, WHITE);
+	}
+}
+
+void test_process_3(){
+	while(1){
+		vDriver_prints("3", WHITE, BLACK);
+	}
+}
 
 int main()
 {	
@@ -66,7 +83,11 @@ int main()
 	mem_init(memManagerModuleAddress);
 
 	init_scheduler();
+	// create_process(5, &test_process_1, 0, NULL);
+	// create_process(5, &test_process_2, 0, NULL);
+	// create_process(5, &test_process_3, 0, NULL);
 	create_process(5, sampleCodeModuleAddress, 0, NULL);
+
 	_sti();
 	
     while(1) _hlt();

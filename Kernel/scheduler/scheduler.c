@@ -28,14 +28,13 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
     add(process_queue, new_process);
     return new_process.pid;
 }
-
-//                            RDI             RSI            RDX      
+   
 void initProcessWrapper(program_t program, uint64_t argc, char *argv[]){
     uint64_t ret_value = program(argc, argv);
     if(ret_value != 0){
     }
     current_process.state = TERMINATED;
-    //TODO: Aca deberia haber un exit(1) no??
+    __asm__ ("int $0x20");              // TimerTick para llamar a schedule de nuevo
 }
 
 void halt(){
