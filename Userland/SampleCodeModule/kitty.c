@@ -43,16 +43,18 @@ void printHelp()
 	printsColor("\n    >invopcode          - testeo invalid op code exception", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >eliminator         - launch ELIMINATOR videogame", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >whoami             - prints current username", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >memtest            - test memory manager", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >schetest           - test scheduler", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >priotest           - priority scheduler", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >testschedulerprocesses", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >memtest            - test memory manager\n", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >schetest           - test scheduler\n", MAX_BUFF, LIGHT_BLUE);
-	
+
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses};
 
 void kitty()
 {
@@ -190,6 +192,10 @@ void cmd_schetest()
 	}
 }
 
+void cmd_priotest(){
+	test_prio();
+}
+
 void cmd_help()
 {
 	printsColor("\n\n===== Listing a preview of available PIBES commands =====\n", MAX_BUFF, GREEN);
@@ -324,6 +330,14 @@ void cmd_ascii()
 	{
 		printsColor(ascii[asciiIdx][i], MAX_BUFF, WHITE);
 		printc('\n');
+	}
+}
+
+void cmd_testschedulerprocesses()
+{
+	if (test_scheduler_processes() == -1)
+	{
+		printsColor("test_scheduler_processes ERROR\n", MAX_BUFF, RED);
 	}
 }
 
