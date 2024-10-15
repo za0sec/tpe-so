@@ -165,18 +165,25 @@ void test_process(int n){
     switch(n){
       case 0:
         prints("++++++++++++++++++++++++++++++\n", MAX_BUFF);
+        break;
       case 1:
         prints("------------------------------\n", MAX_BUFF);
+        break;
       case 2:
         prints("******************************\n", MAX_BUFF);
+        break;
       case 3:
         prints("//////////////////////////////\n", MAX_BUFF);
+        break;
       case 4:
         prints(":::::::::::::::::::::::::::::::\n", MAX_BUFF);
+        break;
       case 5:
         prints("0000000000000000000000000000000\n", MAX_BUFF);
+        break;
       default:
         prints("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n", MAX_BUFF);
+        break;
     }
   }
 }

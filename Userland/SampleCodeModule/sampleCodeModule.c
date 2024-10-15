@@ -14,4 +14,4 @@ int main(uint64_t argc, char *argv[]) {
 	kitty();
 
 	return 0;
-} 
+}
