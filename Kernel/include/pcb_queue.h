@@ -2,7 +2,6 @@
 #define __queue
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 
 typedef struct q_cdt * q_adt;

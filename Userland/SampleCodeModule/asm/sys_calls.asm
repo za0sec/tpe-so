@@ -26,8 +26,10 @@ GLOBAL sys_list_processes
 GLOBAL sys_block
 GLOBAL sys_unblock
 GLOBAL sys_yield
-
-section .text
+GLOBAL sys_sem_open
+GLOBAL sys_sem_wait
+GLOBAL sys_sem_post
+GLOBAL sys_sem_close
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9
@@ -182,3 +184,22 @@ sys_yield:
     int 80h
     ret
 
+sys_sem_open:
+    mov rax, 0x1C
+    int 80h
+    ret
+
+sys_sem_close:
+    mov rax, 0x1D
+    int 80h
+    ret
+
+sys_sem_wait:
+    mov rax, 0x1E
+    int 80h
+    ret
+
+sys_sem_post:
+    mov rax, 0x1F
+    int 80h
+    ret

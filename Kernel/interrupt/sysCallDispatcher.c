@@ -162,6 +162,23 @@ static void * sys_mem_init(int s){
     return mem_init(s);
 }
 
+static sem_t * sys_sem_open(char *sem_name, int init_value){
+    return sem_open(sem_name, init_value);
+}
+
+static void sys_sem_close(sem_t *sem){
+    sem_close(sem);
+}
+
+static void sys_sem_wait(sem_t *sem){
+    sem_wait(sem);
+}
+
+static void sys_sem_post(sem_t *sem){
+    sem_post(sem);
+}
+
+
 /*
 DONE Crear y finalizar un proceso. deberá soportar el pasaje de parámetros.
 DONE Obtener el ID del proceso que llama.
@@ -283,6 +300,17 @@ uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r
         return 0;
     case 27:
         sched_yield();
+        return 0;
+    case 28:
+        return (uint64_t)sem_open((char *)rdi, rsi);
+    case 29:
+        sem_close((sem_t *)rdi);
+        return 0;
+    case 30:
+        sem_wait((sem_t *)rdi);
+        return 0;
+    case 31:
+        sem_post((sem_t *)rdi);
         return 0;
     default:
         return 0;

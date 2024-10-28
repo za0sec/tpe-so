@@ -1,11 +1,17 @@
 #include <scheduler.h>
 #include <memManager.h>
 #include <pcb_queue.h>
+#include <utils.h>
 
 uint64_t currentPID = 0;
 pcb_t current_process;
 q_adt process_queue = NULL;
-q_adt blocked_queue = NULL;
+q_adt blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
+q_adt blocked_read_queue = NULL;
+q_adt blocked_semaphore_queue = NULL;
+uint8_t sem_lock = 1;
+sem_t *semaphores = NULL;
+int current_semaphore = 0;
 
 // Retorna -1 por error
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]){
@@ -48,7 +54,9 @@ void create_process_halt(){
 }
 
 void init_scheduler(){
-    process_queue = new_q();    
+    semaphores = mem_alloc(sizeof(sem_t) * MAX_SEMAPHORES);
+    current_semaphore = 0;
+    process_queue = new_q();
     blocked_queue = new_q();
     current_process = (pcb_t){0, 0, DEFAULT_QUANTUM, 0, TERMINATED};   // El primer proceso seria el kernel 
 }
@@ -82,7 +90,12 @@ uint64_t kill_process(uint64_t pid){
     }
 }
 
-uint64_t block_process(uint64_t pid){
+uint64_t block_process(uint64_t){
+    return block_process_to_queue(current_process.pid, blocked_queue);
+}
+
+// Bloquea el proceso con el pid, y lo agrega a la cola que recibe por parametro
+uint64_t block_process_to_queue(uint64_t pid, q_adt blocked_queue){
     pcb_t process;
     if(current_process.pid == pid){
         current_process.state = BLOCKED;
@@ -94,6 +107,14 @@ uint64_t block_process(uint64_t pid){
     }
 }
 
+// Desbloquea el primer proceso esperando en la cola recibida por parametro
+uint64_t unblock_process_from_queue(q_adt blocked_queue){
+    pcb_t process = dequeue(blocked_queue);
+    process.state = READY;
+    add(process_queue, process);
+}
+
+// Desbloquea el proceso con el pid dado, y lo agrega a la cola de procesos listos
 uint64_t unblock_process(uint64_t pid){
     pcb_t process;
     if( (process = find_dequeue_pid(blocked_queue, pid)).pid > 0){
@@ -148,4 +169,64 @@ uint64_t schedule(void *running_process_rsp){
 
     asm_sti();
     return current_process.rsp;
+}
+
+// SEMAPHORES
+// TODO: Implementar multiples colas de bloqueados, una para cada 'tipo' de bloqueo
+// Retorna la direccion de memoria de un nuevo semaforo, o -1 para error
+
+sem_t *sem_open(char *sem_name, int init_value){
+    acquire(&sem_lock);
+    for(int i = 0; i < current_semaphore; i++){
+        if(!strcmp(semaphores[i].name, sem_name)){
+            return &semaphores[i];
+        }
+    }
+
+    if (current_semaphore >= MAX_SEMAPHORES) {
+        release(&sem_lock);
+        return NULL; 
+    }
+
+    sem_t *new_sem = &semaphores[current_semaphore++];
+    
+    strcpy(new_sem->name, sem_name, SEMAPHORE_NAME_SIZE);
+    new_sem->value = init_value;
+    new_sem->blocked_queue = new_q();
+    new_sem->sem_lock = (lock_t){0};
+
+    release(&sem_lock);
+    return new_sem;
+}
+
+void sem_close(sem_t *sem){
+    if (sem == NULL) return;
+    acquire(sem->sem_lock);
+    
+    while(has_next(sem->blocked_queue)){
+        unblock_process_from_queue(sem->blocked_queue);   
+    }
+    free_q(sem->blocked_queue);
+    sem->name[0] = '\0';
+    current_semaphore--;
+    release(sem->sem_lock);
+}
+
+void sem_wait(sem_t *sem){
+    acquire(sem->sem_lock);
+    if(sem->value > 0){
+        (sem->value)--;
+    } else {
+        block_process_to_queue(current_process.pid, sem->blocked_queue);
+    }
+    release(sem->sem_lock);
+}
+
+void sem_post(sem_t *sem){
+    acquire(sem->sem_lock);
+    if (sem->value == 0){
+        unblock_process_from_queue(sem->blocked_queue);
+    }
+    (sem->value)++;
+    release(sem->sem_lock);       
 }

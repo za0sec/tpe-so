@@ -46,15 +46,16 @@ void printHelp()
 	printsColor("\n    >memtest            - test memory manager", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >schetest           - test scheduler", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >priotest           - priority scheduler", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >testschedulerprocesses", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >testschedulerprocesses - test scheduler processes", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >testsync            - test sync processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync};
 
 void kitty()
 {
@@ -186,7 +187,7 @@ void cmd_memtest()
 
 void cmd_schetest()
 {
-    char *argv[] = {"10"};
+    char *argv[] = {"3"};
 	sys_create_process(1, &test_processes, 1, argv);
 }
 
@@ -337,6 +338,12 @@ void cmd_testschedulerprocesses()
 	{
 		printsColor("test_scheduler_processes ERROR\n", MAX_BUFF, RED);
 	}
+}
+
+void cmd_test_sync() {
+    char *argv[] = {"10", "1", NULL};
+	sys_create_process(5, &test_sync, 2, argv);
+	printsColor("CREATED 'test_sync' PROCESS!\n", MAX_BUFF, RED);
 }
 
 void newLineUsername()
