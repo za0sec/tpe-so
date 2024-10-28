@@ -339,9 +339,9 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   //   sys_kill(pids[i + TOTAL_PAIR_PROCESSES]);
   // }
 
-  // prints("Final value: ", strlen("Final value: "));
-  // printDec(global);
-  // prints("\n", strlen("\n"));
+  prints("Final value: ", strlen("Final value: "));
+  printDec(global);
+  prints("\n", strlen("\n"));
 
   return 0;
 }

@@ -10,7 +10,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define SYS_CALLS_QTY 25
+#define SYS_CALLS_QTY 32
 
 extern uint8_t hasregisterInfo;
 extern const uint64_t registerInfo[17];
@@ -19,10 +19,11 @@ extern int _hlt();
 extern Color WHITE;
 extern Color BLACK;
 
-static uint64_t sys_read(uint64_t fd, char *buff)
-{
-    if (fd != 0)
-    {
+/* Funciones del sistema */
+
+// Llena buff con el carácter leído del teclado
+static uint64_t sys_read(uint64_t fd, char *buff) {
+    if (fd != STDIN) {
         return -1;
     }
 
@@ -30,16 +31,8 @@ static uint64_t sys_read(uint64_t fd, char *buff)
     return 0;
 }
 
-static int sys_drawCursor()
-{
-    vDriver_drawCursor();
-    return 1;
-}
-
-static uint64_t sys_write(uint64_t fd, char buffer)
-{
-    if (fd != 1)
-    {
+static uint64_t sys_write(uint64_t fd, char buffer) {
+    if (fd != STDOUT) {
         return -1;
     }
 
@@ -47,78 +40,61 @@ static uint64_t sys_write(uint64_t fd, char buffer)
     return 1;
 }
 
-static uint64_t sys_writeColor(uint64_t fd, char buffer, Color color)
-{
-    if (fd != 1)
-    {
-        return -1;
-    }
-
-    vDriver_print(buffer, color, BLACK);
-    return 1;
-}
-
-static uint64_t sys_clear(){
+static uint64_t sys_clear() {
     vDriver_clear();
     return 1;
 }
 
-static uint64_t sys_getScrHeight(){
+static uint64_t sys_getHours() {
+    return getHours();
+}
+
+static uint64_t sys_getMinutes() {
+    return getMinutes();
+}
+
+static uint64_t sys_getSeconds() {
+    return getSeconds();
+}
+
+static uint64_t sys_getScrHeight() {
     return vDriver_getHeight();
 }
 
-static uint64_t sys_getScrWidth(){
+static uint64_t sys_getScrWidth() {
     return vDriver_getWidth();
 }
 
-static void sys_drawRectangle(int x, int y, int x2, int y2, Color color){
+static void sys_drawRectangle(int x, int y, int x2, int y2, Color color) {
     vDriver_drawRectangle(x, y, x2, y2, color);
 }
 
-static void sys_wait(int ms){
-    if (ms > 0)
-    {
+static void sys_wait(int ms) {
+    if (ms > 0) {
         int start_ms = ms_elapsed();
-        do
-        {
+        do {
             _hlt();
         } while (ms_elapsed() - start_ms < ms);
     }
 }
 
-static uint64_t sys_getHours(){
-    return getHours();
-}
-
-static uint64_t sys_getMinutes(){
-    return getMinutes();
-}
-
-static uint64_t sys_getSeconds(){
-    return getSeconds();
-}
-
-static uint64_t sys_registerInfo(uint64_t registers[17]){
-    if (hasregisterInfo)
-    {
-        for (uint8_t i = 0; i < 17; i++)
-        {
+static uint64_t sys_registerInfo(uint64_t registers[17]) {
+    if (hasregisterInfo) {
+        for (uint8_t i = 0; i < 17; i++) {
             registers[i] = registerInfo[i];
         }
     }
     return hasregisterInfo;
 }
 
-static uint64_t sys_printmem(uint64_t *address){
-    if ((uint64_t)address > (0x20000000 - 32))
-    {
+static uint64_t sys_printmem(uint64_t *address) {
+    if ((uint64_t)address > (0x20000000 - 32)) {
         return -1;
     }
 
     uint8_t *aux = (uint8_t *)address;
     vDriver_prints("\n", WHITE, BLACK);
-    for (int i = 0; i < 32; i++)
-    {
+    for (int i = 0; i < 32; i++) {
         vDriver_printHex((uint64_t)aux, WHITE, BLACK);
         vDriver_prints(" = ", WHITE, BLACK);
         vDriver_printHex(*aux, WHITE, BLACK);
@@ -129,190 +105,144 @@ static uint64_t sys_printmem(uint64_t *address){
     return 0;
 }
 
-static uint64_t sys_pixelPlus(){
+static uint64_t sys_pixelPlus() {
     plusScale();
     return 1;
 }
 
-static uint64_t sys_pixelMinus(){
+static uint64_t sys_pixelMinus() {
     minusScale();
     sys_clear();
     return 1;
 }
 
-static uint64_t sys_playSpeaker(uint32_t frequence, uint64_t duration){
-    beep(frequence, duration);
+static uint64_t sys_playSpeaker(uint32_t frequency, uint64_t duration) {
+    beep(frequency, duration);
     return 1;
 }
 
-static uint64_t sys_stopSpeaker(){
+static uint64_t sys_stopSpeaker() {
     stopSpeaker();
     return 1;
 }
 
-static void * sys_mem_alloc(uint64_t size){
+static uint64_t sys_drawCursor() {
+    vDriver_drawCursor();
+    return 1;
+}
+
+static uint64_t sys_writeColor(uint64_t fd, char buffer, Color color) {
+    if (fd != STDOUT) {
+        return -1;
+    }
+
+    vDriver_print(buffer, color, BLACK);
+    return 1;
+}
+
+static void *sys_mem_alloc(uint64_t size) {
     return mem_alloc(size);
 }
 
-static void sys_mem_free(void * ptr){
-    return mem_free(ptr);
+static void sys_mem_free(void *ptr) {
+    mem_free(ptr);
 }
 
-static void * sys_mem_init(int s){
+static void *sys_mem_init(int s) {
     return mem_init(s);
 }
 
-static sem_t * sys_sem_open(char *sem_name, int init_value){
-    return sem_open(sem_name, init_value);
+/* Funciones del scheduler */
+
+static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
+    char *argvv[] = {"5", "1", "0"};
+    return create_process(priority, program, argc, argvv);
 }
 
-static void sys_sem_close(sem_t *sem){
-    sem_close(sem);
-}
-
-static void sys_sem_wait(sem_t *sem){
-    sem_wait(sem);
-}
-
-static void sys_sem_post(sem_t *sem){
-    sem_post(sem);
-}
-
-
-/*
-DONE Crear y finalizar un proceso. deberá soportar el pasaje de parámetros.
-DONE Obtener el ID del proceso que llama.
-DONE Listar todos los procesos: nombre, ID, prioridad, stack y base pointer, foreground y
-cualquier otra variable que consideren necesaria.
-DONE Matar un proceso arbitrario.
-TODO: Modificar la prioridad de un proceso arbitrario.
-DONE Bloquear y desbloquear un proceso arbitrario.
-DONE (Dudosa implementacion en scheduler.c) Renunciar al CPU.
-TODO: Esperar a que los hijos terminen.
-*/
-
-static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]){
-    return create_process(priority, program, argc, argv);
-}
-
-static void sched_kill_process(uint64_t pid){
+static void sched_kill_process(uint64_t pid) {
     kill_process(pid);
 }
 
-static uint64_t sched_getPID(){
+static uint64_t sched_getPID() {
     return get_pid();
 }
 
-static void sched_list_processes(char *buf){
+static void sched_list_processes(char *buf) {
     list_processes(buf);
 }
 
-static void sched_block_process(uint64_t pid){
+static void sched_block_process(uint64_t pid) {
     block_process(pid);
 }
 
-static void sched_unblock_process(uint64_t pid){
+static void sched_unblock_process(uint64_t pid) {
     unblock_process(pid);
 }
 
-static void sched_yield(){
+static void sched_yield() {
     yield();
 }
 
-uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax)
-{
-    uint8_t r, g, b;
-    Color color;
-    switch (rax)
-    {
-    case 0:
-        return sys_read(rdi, (char *)rsi);
-    case 1:
-        return sys_write(rdi, (char)rsi);
-    case 2:
-        return sys_clear();
-    case 3:
-        return sys_getHours();
-    case 4:
-        return sys_getMinutes();
-    case 5:
-        return sys_getSeconds();
-    case 6:
-        return sys_getScrHeight();
-    case 7:
-        return sys_getScrWidth();
-    case 8:
-        r = (r8 >> 16) & 0xFF;
-        g = (r8 >> 8) & 0xFF;
-        b = r8 & 0xFF;
-        color.r = r;
-        color.g = g;
-        color.b = b;
-        sys_drawRectangle(rdi, rsi, rdx, r10, color);
-        return 1;
-    case 9:
-        sys_wait(rdi);
-        return 1;
-    case 10:
-        return sys_registerInfo((uint64_t *)rdi);
-    case 11:
-        return sys_printmem((uint64_t *)rdi);
-    case 12:
-        return sys_pixelPlus();
-    case 13:
-        return sys_pixelMinus();
-    case 14:
-        return sys_playSpeaker((uint32_t)rdi, rsi);
-    case 15:
-        return sys_stopSpeaker();
-    case 16:
-        return sys_drawCursor();
-    case 17:
-        r = (rdx >> 16) & 0xFF;
-        g = (rdx >> 8) & 0xFF;
-        b = rdx & 0xFF;
-        color.r = r;
-        color.g = g;
-        color.b = b;
-        return sys_writeColor(rdi, (char)rsi, color);
-    case 18:
-        return (uint64_t)sys_mem_alloc(rdi);
-    case 19:
-        sys_mem_free((void*)rdi);
-        return 0;
-    case 20:
-        return (uint64_t)sys_mem_init(rdi);
-    case 21:
-        return sched_create_process(rdi, (program_t)rsi, rdx, (char **)r10);
-    case 22:
-        sched_kill_process(rdi);
-        return 0;
-    case 23:
-        return sched_getPID();
-    case 24:
-        sched_list_processes((char *)rdi);
-        return 0;
-    case 25:
-        sched_block_process(rdi);
-        return 0;
-    case 26:
-        sched_unblock_process(rdi);
-        return 0;
-    case 27:
-        sched_yield();
-        return 0;
-    case 28:
-        return (uint64_t)sem_open((char *)rdi, rsi);
-    case 29:
-        sem_close((sem_t *)rdi);
-        return 0;
-    case 30:
-        sem_wait((sem_t *)rdi);
-        return 0;
-    case 31:
-        sem_post((sem_t *)rdi);
-        return 0;
-    default:
-        return 0;
+/* Funciones de semáforos */
+
+static sem_t *sys_sem_open(char *sem_name, int init_value) {
+    return sem_open(sem_name, init_value);
+}
+
+static void sys_sem_close(sem_t *sem) {
+    sem_close(sem);
+}
+
+static void sys_sem_wait(sem_t *sem) {
+    sem_wait(sem);
+}
+
+static void sys_sem_post(sem_t *sem) {
+    sem_post(sem);
+}
+
+/* Arreglo de punteros a funciones (syscalls) */
+
+static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
+    /* RAX: número de syscall */
+    (void *)sys_read,               // 0
+    (void *)sys_write,              // 1
+    (void *)sys_clear,              // 2
+    (void *)sys_getHours,           // 3
+    (void *)sys_getMinutes,         // 4
+    (void *)sys_getSeconds,         // 5
+    (void *)sys_getScrHeight,       // 6
+    (void *)sys_getScrWidth,        // 7
+    (void *)sys_drawRectangle,      // 8
+    (void *)sys_wait,               // 9
+    (void *)sys_registerInfo,       // 10
+    (void *)sys_printmem,           // 11
+    (void *)sys_pixelPlus,          // 12
+    (void *)sys_pixelMinus,         // 13
+    (void *)sys_playSpeaker,        // 14
+    (void *)sys_stopSpeaker,        // 15
+    (void *)sys_drawCursor,         // 16
+    (void *)sys_writeColor,         // 17
+    (void *)sys_mem_alloc,          // 18
+    (void *)sys_mem_free,           // 19
+    (void *)sys_mem_init,           // 20
+    (void *)sched_create_process,   // 21
+    (void *)sched_kill_process,     // 22
+    (void *)sched_getPID,           // 23
+    (void *)sched_list_processes,   // 24
+    (void *)sched_block_process,    // 25
+    (void *)sched_unblock_process,  // 26
+    (void *)sched_yield,            // 27
+    (void *)sys_sem_open,           // 28
+    (void *)sys_sem_close,          // 29
+    (void *)sys_sem_wait,           // 30
+    (void *)sys_sem_post            // 31
+};
+
+uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {
+    if (rax < SYS_CALLS_QTY && syscalls[rax] != 0){
+        return syscalls[rax](rdi, rsi, rdx, r10, r8);
     }
+
+    return 0;
 }

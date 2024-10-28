@@ -151,6 +151,7 @@ sys_mem_init:
 
 sys_create_process:
     mov rax, 0x15
+    mov r10, rcx        ;4to parametro de syscall es R10
     int 80h
     ret
 

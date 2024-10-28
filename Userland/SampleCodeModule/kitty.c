@@ -341,7 +341,7 @@ void cmd_testschedulerprocesses()
 }
 
 void cmd_test_sync() {
-    char *argv[] = {"5", "1", "0"};
+    char *argv[] = {"5", "1"};
 	sys_create_process(1, &test_sync, 2, argv);
 	printsColor("CREATED 'test_sync' PROCESS!\n", MAX_BUFF, RED);
 }
