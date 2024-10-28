@@ -2,6 +2,13 @@
 #include <test_util.h>
 #include <sys_calls.h>
 #include <tests.h>
+#include <stdint.h>
+#include <stdio.h>
+#include "test_util.h"
+
+#define SEM_ID "sem"
+#define TOTAL_PAIR_PROCESSES 2
+
 
 #define MAX_BLOCKS 128
 #define MINOR_WAIT 1000000 // TODO: Change this value to prevent a process from flooding the screen
@@ -254,13 +261,6 @@ void test_prio() {
   for (i = 0; i < TOTAL_PROCESSES; i++)
     sys_kill(pids[i]);
 }
-
-#include <stdint.h>
-#include <stdio.h>
-#include "test_util.h"
-
-#define SEM_ID "sem"
-#define TOTAL_PAIR_PROCESSES 2
 
 int64_t global; // shared memory
 
