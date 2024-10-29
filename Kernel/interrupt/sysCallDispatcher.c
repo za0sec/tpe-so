@@ -155,8 +155,8 @@ static void *sys_mem_init(int s) {
 /* Funciones del scheduler */
 
 static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
-    char *argvv[] = {"5", "1", "0"};
-    return create_process(priority, program, argc, argvv);
+    int a = argv;
+    return create_process(priority, program, argc, argv);
 }
 
 static void sched_kill_process(uint64_t pid) {
