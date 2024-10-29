@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <colors.h>
-
 /*
  * Pasaje de parametros en C:
    %rdi %rsi %rdx %rcx %r8 %r9
@@ -67,6 +66,13 @@ uint64_t sys_unblock(uint64_t pid);
 
 uint64_t sys_yield();
 
+uint64_t sys_sem_open(char* sem_name, int init_value);
+
+uint64_t sys_sem_close(void *sem);
+
+uint64_t sys_sem_wait(void *sem);
+
+uint64_t sys_sem_post(void *sem);
 
 
 #endif

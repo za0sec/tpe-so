@@ -231,7 +231,7 @@ haltcpu:
 
 acquire:
 	mov al, 0
-.retry
+.retry:
 	xchg [rdi], al
 	test al, al
 	jz .retry

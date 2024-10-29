@@ -5,9 +5,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "test_util.h"
+#include <time.h>
 
 #define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
+
+#define NULL ((void*)0)
 
 
 #define MAX_BLOCKS 128
@@ -269,66 +272,6 @@ void test_prio() {
 
 
 
-
-
-
-int64_t global = 0; // shared memory
-
-void slowInc(int64_t *p, int64_t inc) {
-  int64_t aux = *p;
-  sys_yield(); // This makes the race condition highly probable
-  aux += inc;
-  *p = aux;
-}
-
-uint64_t my_process_inc(uint64_t argc, char *argv[]) {
-  uint64_t n;
-  int8_t inc;
-  int8_t use_sem;
-  void * sem;
-
-  if (argc != 3)
-    return -1;
-
-  if ((n = satoi(argv[0])) <= 0)
-    return -1;
-  if ((inc = satoi(argv[1])) == 0)
-    return -1;
-  if ((use_sem = satoi(argv[2])) < 0)
-    return -1;
-
-  if (use_sem)
-    sem = sys_sem_open(SEM_ID, 1);
-    if (!sem) {
-      prints("test_sync: ERROR opening semaphore\n", MAX_BUFF);
-      return -1;
-    }
-
-  uint64_t i;
-  for (i = 0; i < n; i++) {
-    if (use_sem)
-      sys_sem_wait(sem);
-    slowInc(&global, inc);
-    prints("Process: ", strlen("Process: "));
-    printDec(sys_getPID());
-    prints(" Global: ", strlen(" Global: "));
-    if(global < 0){
-      prints("-", strlen("-"));
-      printDec(-global);
-    } else {
-      printDec(global);
-    }
-    prints("\n", strlen("\n"));
-    if (use_sem)
-      sys_sem_post(sem);
-  }
-
-  if (use_sem)
-    sys_sem_close(sem);
-
-  return 0;
-}
-
 int stringArrayLen(char **array) {
 	int len = 0;
 	while (*(array++) != NULL)
@@ -370,14 +313,74 @@ static char **mem_alloc_args(char **args) {
   return newArgsArray;
 }
 
-uint64_t test_sync(uint64_t argc, char *argv[]) {
-  uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
+int global; // shared memory
 
-  if (argc != 2)
+void slowInc(int64_t *p, int64_t inc) {
+  int64_t aux = *p;
+  sys_yield(); // This makes the race condition highly probable
+  aux += inc;
+  *p = aux;
+}
+
+uint64_t my_process_inc(uint64_t argc, char *argv[]) {
+  uint64_t n;
+  int8_t inc;
+  int8_t use_sem;
+
+  if (argc != 3)
     return -1;
 
-  char *argvDec[] = {"5", "-1", "1", NULL};
-  char *argvInc[] = {"5", "1", "1", NULL};
+  if ((n = satoi(argv[0])) <= 0)
+    return -1;
+  if ((inc = satoi(argv[1])) == 0)
+    return -1;
+  if ((use_sem = satoi(argv[2])) < 0)
+    return -1;
+
+  if (use_sem) {
+      if (sys_sem_open(SEM_ID, 1)) {
+          prints("test_sync: ERROR opening semaphore\n", MAX_BUFF);
+          return -1;
+      }
+  }
+
+  uint64_t i;
+  for (i = 0; i < n; i++) {
+    if (use_sem)
+      sys_sem_wait(SEM_ID);
+    slowInc(&global, inc);
+    prints("Process: ", strlen("Process: "));
+    printDec(sys_getPID());
+    prints(" Global: ", strlen(" Global: "));
+    if(global < 0){
+      prints("-", strlen("-"));
+      printDec(-global);
+    } else {
+      printDec(global);
+    }
+    prints("\n", strlen("\n"));
+    if (use_sem)
+      sys_sem_post(SEM_ID);
+  }
+
+
+    if (use_sem)
+        sys_sem_close(SEM_ID);
+
+  return 0;
+}
+
+uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
+  uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
+
+  if (argc != 2) {
+      return -1;
+  }
+
+  global = 0;
+
+  char *argvDec[] = {"5", "-1", "0", NULL};
+  char *argvInc[] = {"5", "1", "0", NULL};
 
   uint64_t i;
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
@@ -385,19 +388,15 @@ uint64_t test_sync(uint64_t argc, char *argv[]) {
     pids[i + TOTAL_PAIR_PROCESSES] = sys_create_process(5, &my_process_inc, 3, mem_alloc_args(argvInc));
   }
 
-  // for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-  //   my_wait(pids[i]);
-  //   my_wait(pids[i + TOTAL_PAIR_PROCESSES]);
-  // }
 
   // for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-  //   sys_kill(pids[i]);
-  //   sys_kill(pids[i + TOTAL_PAIR_PROCESSES]);
+  //   wait(pids[i]);
+  //   wait(pids[i + TOTAL_PAIR_PROCESSES]);
   // }
-
-  prints("Final value: ", strlen("Final value: "));
-  printDec(global);
-  prints("\n", strlen("\n"));
+  
+  // prints("Final value: ", strlen("Final value: "));
+  // printDec(global);
+  // prints("\n", strlen("\n"));
 
   return 0;
 }

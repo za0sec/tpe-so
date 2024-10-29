@@ -16,7 +16,7 @@ typedef struct {
 #define DEFAULT_QUANTUM 5
 #define CPU_BOUND_QUANTUM 3
 #define IO_BOUND_QUANTUM 7
-#define MAX_SEMAPHORES CHUNK_SIZE / sizeof(sem_t)
+#define MAX_SEMAPHORES (CHUNK_SIZE / sizeof(sem_t))
 #define SEMAPHORE_NAME_SIZE 32
 
 #include <stdint.h>
@@ -46,5 +46,10 @@ uint64_t unblock_process_from_queue(q_adt blocked_queue);
 uint64_t unblock_process(uint64_t pid);
 uint64_t get_pid();
 void yield();
+
+int64_t sem_open(char *sem_id, uint64_t initialValue);
+int64_t sem_close(char * sem_id);
+void sem_wait(char * sem_name);
+int64_t sem_post(char *sem_id);
 
 #endif
