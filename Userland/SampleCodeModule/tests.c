@@ -107,7 +107,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
       // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
-      p_rqs[rq].pid = sys_create_process(5, &endless_loop, 0, argvAux);
+      p_rqs[rq].pid = sys_create_process(0, &endless_loop, 0, argvAux);
 
       if (p_rqs[rq].pid == -1) {
         prints("test_processes: ERROR creating process\n", MAX_BUFF);
@@ -211,7 +211,7 @@ int64_t test_scheduler_processes() {
     for (rq = 0; rq < max_processes; rq++) {
       // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
       char *argv[] = {rq};
-      p_rqs[rq].pid = sys_create_process(5, &test_process, 0, argv);
+      p_rqs[rq].pid = sys_create_process(0, &test_process, 0, argv);
 
       if (p_rqs[rq].pid == -1) {
         prints("ERROR creating process\n", MAX_BUFF);
@@ -234,7 +234,7 @@ void test_prio() {
   uint64_t i;
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    pids[i] = sys_create_process(5, &endless_loop, 0, argv);
+    pids[i] = sys_create_process(0, &endless_loop, 0, argv);
 
   bussy_wait(WAIT);
   prints("\nCHANGING PRIORITIES...\n", MAX_BUFF);
@@ -325,7 +325,7 @@ void slowInc(int64_t *p, int64_t inc) {
 uint64_t my_process_inc(uint64_t argc, char *argv[]) {
   uint64_t n;
   int8_t inc;
-  int8_t use_sem;
+  int8_t use_sem = 1;
 
   if (argc != 3)
     return -1;
@@ -379,13 +379,15 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
 
   global = 0;
 
-  char *argvDec[] = {"5", "-1", "0", NULL};
-  char *argvInc[] = {"5", "1", "0", NULL};
+  //TODO: Hardcodeado el "use_sem" en 1
+
+  char *argvDec[] = {"5", "-1", "1", NULL};
+  char *argvInc[] = {"5", "1", "1", NULL};
 
   uint64_t i;
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-    pids[i] = sys_create_process(5, &my_process_inc, 3, mem_alloc_args(argvDec));
-    pids[i + TOTAL_PAIR_PROCESSES] = sys_create_process(5, &my_process_inc, 3, mem_alloc_args(argvInc));
+    pids[i] = sys_create_process(0, &my_process_inc, 3, mem_alloc_args(argvDec));
+    pids[i + TOTAL_PAIR_PROCESSES] = sys_create_process(0, &my_process_inc, 3, mem_alloc_args(argvInc));
   }
 
 

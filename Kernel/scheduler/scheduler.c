@@ -5,14 +5,75 @@
 
 uint64_t currentPID = 0;
 pcb_t current_process;
-q_adt process_queue = NULL;
-q_adt blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
+
+q_adt p0 = NULL;
+q_adt p1 = NULL;
+q_adt p2 = NULL;
+q_adt p3 = NULL;
+
+q_adt all_blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
 q_adt blocked_read_queue = NULL;
+
 q_adt blocked_semaphore_queue = NULL;
+int current_semaphore = 0;
 uint8_t mutex_lock = 1;
 
-int current_semaphore = 0;
+uint64_t schedule(void *running_process_rsp){
+    current_process.rsp = running_process_rsp;
+    if(current_process.state == RUNNING){
+        current_process.used_quantum++;
+        if(current_process.used_quantum < current_process.assigned_quantum){
+            return current_process.rsp;
+        } else {
+            current_process.state = READY;
+            current_process.used_quantum = 0;
+            current_process.assigned_quantum--;
 
+            if(current_process.assigned_quantum <= 0){
+                //Esto deberia ser decrementar LA PRIORIDAD
+                current_process.assigned_quantum = CPU_BOUND_QUANTUM;
+            }
+
+            add_priority_queue(current_process);
+        }
+    } else if (current_process.state == BLOCKED){
+        if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
+            //Esto deberia ser aumentar LA PRIORIDAD
+            current_process.assigned_quantum++;
+        }
+        add_priority_queue(current_process);        
+    } else if (current_process.state == READY){
+        add_priority_queue(current_process);
+    } else {
+        mem_free(current_process.rsp);      //Process is TERMINATED
+    } 
+
+    // Si llegue hasta aca, el proceso actual no esta en estado running
+    current_process = get_next_process();
+    if(current_process.pid == -1){
+        create_process_halt();
+        current_process = get_next_process();
+    }
+
+    current_process.state = RUNNING;
+    return current_process.rsp;
+}
+
+pcb_t get_next_process(){
+    pcb_t next_process;
+    if(has_next(p0)){
+        next_process = dequeue(p0);
+    } else if(has_next(p1)){
+        next_process = dequeue(p1);
+    } else if(has_next(p2)){
+        next_process = dequeue(p2);
+    } else if(has_next(p3)){
+        next_process = dequeue(p3);
+    } else {
+        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+    }
+    return next_process;
+}
 
 // Retorna -1 por error
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]){
@@ -28,11 +89,12 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
     pcb_t new_process = {
                         currentPID++,       //pid
                         stack_pointer,      //rsp
+                        priority,           //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         state               //state
                         };
-    add(process_queue, new_process);
+    add_priority_queue(new_process);
     return new_process.pid;
 }
    
@@ -56,8 +118,11 @@ void create_process_halt(){
 
 void init_scheduler(){
     current_semaphore = 0;
-    process_queue = new_q();
-    blocked_queue = new_q();
+    p0 = new_q();
+    p1 = new_q();
+    p2 = new_q();
+    p3 = new_q();
+    all_blocked_queue = new_q();
     current_process = (pcb_t){0, 0, DEFAULT_QUANTUM, 0, TERMINATED};   // El primer proceso seria el kernel 
 }
 
@@ -65,61 +130,76 @@ uint64_t get_pid(){
     return current_process.pid;
 }
 
+// TODO: esto
 void list_processes(char *buf){
+    // TODO: Implementar con las multiples queues
+    return;
     // 8 char para el state, 3 para el pid, 1 para un espacio, 1 para el newline
-    buf = mem_alloc(10 + (get_size(process_queue) + get_size(blocked_queue)) * 13);
-    while(has_next(process_queue)){
-        pcb_t process = dequeue(process_queue);
+    // buf = mem_alloc(10 + (get_size(process_queue) + get_size(blocked_queue)) * 13);
+    // while(has_next(process_queue)){
+    //     pcb_t process = dequeue(process_queue);
         
-        // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
-    }
-     while(has_next(blocked_queue)){
-        pcb_t process = dequeue(process_queue);
-        // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
-    }
+    //     // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
+    // }
+    //  while(has_next(blocked_queue)){
+    //     pcb_t process = dequeue(process_queue);
+    //     // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
+    // }
 }
 
 uint64_t kill_process(uint64_t pid){
     pcb_t process;
     if(current_process.pid == pid){
         current_process.state = TERMINATED;
-    } else if( (process = find_dequeue_pid(process_queue, pid)).pid > 0 || (process = find_dequeue_pid(blocked_queue, pid)).pid > 0 ){
+    } else if( (process = find_dequeue_priority(pid)).pid > 0 || (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
         mem_free(process.rsp);
     } else {
         return -1;
     }
 }
 
-uint64_t block_process(uint64_t){
+
+// Bloquea el proceso actual y lo agrega a la cola de procesos bloqueados
+uint64_t block_process(){
+    return block_process_to_queue(current_process.pid, all_blocked_queue);
+}
+
+// Bloquea el proceso actual y lo agrega a la cola que recibe por parametro, 
+// y a la cola total de bloqueados
+uint64_t block_current_process_to_queue(q_adt blocked_queue){
     return block_process_to_queue(current_process.pid, blocked_queue);
 }
 
-// Bloquea el proceso con el pid, y lo agrega a la cola que recibe por parametro
-uint64_t block_process_to_queue(uint64_t pid, q_adt blocked_queue){
+// Bloquea el proceso con el pid, y lo agrega a la cola que recibe por parametro, 
+// y a la cola total de bloqueados
+uint64_t block_process_to_queue(uint64_t pid, q_adt dest){
     pcb_t process;
     if(current_process.pid == pid){
         current_process.state = BLOCKED;
-    } else if( (process = find_dequeue_pid(process_queue, pid)).pid > 0){
+    } else if( (process = find_dequeue_priority(pid)).pid > 0){
         process.state = BLOCKED;
-        add(blocked_queue, process);
+        add(dest, process);
+        add(all_blocked_queue, process);
     } else {
         return -1;
     }
 }
 
 // Desbloquea el primer proceso esperando en la cola recibida por parametro
-uint64_t unblock_process_from_queue(q_adt blocked_queue){
-    pcb_t process = dequeue(blocked_queue);
+// y lo quita de la cola de all_blocked
+uint64_t unblock_process_from_queue(q_adt src){
+    pcb_t process = dequeue(src);                           // Pop el primer proceso
+    find_dequeue_pid(all_blocked_queue, process.pid);       // Ademas lo elimino de la cola de bloqueados
     process.state = READY;
-    add(process_queue, process);
+    add_priority_queue(process);
 }
 
-// Desbloquea el proceso con el pid dado, y lo agrega a la cola de procesos listos
+// Desbloquea el proceso con el pid dado DE LA COLA ALL_BLOCKED, y lo agrega a la cola de procesos listos
 uint64_t unblock_process(uint64_t pid){
     pcb_t process;
-    if( (process = find_dequeue_pid(blocked_queue, pid)).pid > 0){
+    if( (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0){
         process.state = READY;
-        add(process_queue, process);
+        add_priority_queue(process);
     } else {
         return -1;
     }
@@ -129,177 +209,43 @@ void yield(){
     current_process.state = READY;
 }
 
-uint64_t schedule(void *running_process_rsp){
-    asm_cli();
+uint8_t add_priority_queue(pcb_t process){
+    switch(process.priority){
+        case(0):
+            add(p0, process);
+            break;
+        case(1):
+            add(p1, process);
+            break;
+        case(2):
+            add(p2, process);
+            break;
+        case(3):
+            add(p3, process);
+            break;
+        default:
+            return -1;
+    }
+}
 
-    current_process.rsp = running_process_rsp;
-    if(current_process.state == RUNNING){
-        current_process.used_quantum++;
-        if(current_process.used_quantum < current_process.assigned_quantum){
-            return current_process.rsp;
-        } else {
-            current_process.state = READY;
-            current_process.used_quantum = 0;
-            current_process.assigned_quantum--;
+/**
+ * @brief Busca y popea el proceso en todas las colas de scheduler.c
+ * 
+ * @return pcb_t el proceso encontrado, o un proceso nulo: (pcb_t){-1, 0, 0, 0, TERMINATED} si no existe
+ */
+pcb_t find_dequeue_priority(uint64_t pid){
+    pcb_t process;
+    process = find_dequeue_pid(p0, pid);
+    if(process.pid > 0) return process;
 
-            if(current_process.assigned_quantum <= 0){
-                //Esto deberia ser decrementar LA PRIORIDAD
-                current_process.assigned_quantum = CPU_BOUND_QUANTUM;
-            }
-
-            add(process_queue, current_process);
-        }
-    } else if (current_process.state == BLOCKED){
-        if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
-            //Esto deberia ser aumentar LA PRIORIDAD
-            current_process.assigned_quantum++;
-        }
-        add(blocked_queue, current_process);        
-    } else {
-        //Process is TERMINATED
-        mem_free(current_process.rsp);
-    } 
+    process = find_dequeue_pid(p1, pid);
+    if(process.pid > 0) return process;
     
-    if(!has_next(process_queue)){
-        //TODO: El halt queda para siempre en la cola
-        create_process_halt();
-    }
-    current_process = dequeue(process_queue);
-    current_process.state = RUNNING;
+    process = find_dequeue_pid(p2, pid);
+    if(process.pid > 0) return process;
 
-    asm_sti();
-    return current_process.rsp;
+    process = find_dequeue_pid(p3, pid);
+    if(process.pid > 0) return process;
+
+    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
 }
-
-//------------------------------------------------------------------------------
-//----------------------------------SEMAPHORES----------------------------------
-//------------------------------------------------------------------------------
-
-
-typedef struct list_t {
-    sem_t semaphore;
-    struct list_t *next;
-} list_t;
-
-list_t *sem_list = NULL;
-
-list_t * add_sem(list_t **head, char * name, int initialValue) {
-    list_t * new_node = (list_t *) mem_alloc(sizeof(list_t));
-    strcpy(new_node->semaphore.name, name, strlen(name));
-    new_node->semaphore.value = initialValue;
-    new_node->semaphore.sem_lock = 0;
-    new_node->semaphore.blocked_queue = new_q();
-
-    if (*head == NULL) {
-        *head = new_node;
-    } else {
-        list_t *temp = *head;
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
-        temp->next = new_node;
-    }
-
-    return new_node;
-}
-
-void remove_sem(list_t **head, char * name){
-    list_t *temp = *head;
-    list_t *prev = NULL;
-
-    if (temp != NULL && strcmp(temp->semaphore.name, name) == 0) {
-        *head = temp->next;
-        free_q(temp->semaphore.blocked_queue);
-        mem_free(temp);
-        return;
-    }
-
-    while (temp != NULL && strcmp(temp->semaphore.name, name) != 0) {
-        prev = temp;
-        temp = temp->next;
-    }
-
-    if (temp == NULL) {
-        return;
-    }
-
-    prev->next = temp->next;
-
-    while(has_next(temp->semaphore.blocked_queue)){
-        unblock_process_from_queue(temp->semaphore.blocked_queue);   
-    }
-    free_q(temp->semaphore.blocked_queue);
-    mem_free(temp);
-}
-
-
-list_t* find_sem(char * sem_name){
-    list_t * aux = sem_list;
-    while(aux != NULL){
-        if(strcmp(aux->semaphore.name, sem_name) == 0)
-            return aux;
-        aux = aux->next;
-    }
-    return NULL;
-}
-
-// TODO: Implementar multiples colas de bloqueados, una para cada 'tipo' de bloqueo
-// Retorna la direccion de memoria de un nuevo semaforo, o -1 para error
-
-int64_t sem_open(char *sem_id, uint64_t initialValue){
-    list_t * aux = find_sem(sem_id);
-    if(aux == NULL)
-        aux = add_sem(&sem_list, sem_id, initialValue);
-    acquire(aux->semaphore.sem_lock);
-    aux->semaphore.value++;
-    release(aux->semaphore.sem_lock);
-    return 0;
-}
-
-int64_t sem_close(char * sem_id){
-    list_t * aux = find_sem(sem_id);
-    if(aux != NULL) {
-        acquire(aux->semaphore.sem_lock);
-        if(aux->semaphore.value > 0)
-            aux->semaphore.value--;
-        else
-            remove_sem(&sem_list, sem_id);
-        release(aux->semaphore.sem_lock);
-    }
-    return 0;
-}
-
-void sem_wait(char * sem_name){
-    list_t * sem_node = find_sem(sem_name);
-    if(sem_node == NULL) return;
-    acquire(sem_node->semaphore.sem_lock);
-    if(sem_node->semaphore.value > 0){
-        (sem_node->semaphore.value)--;
-    } else {
-        block_process_to_queue(current_process.pid, sem_node->semaphore.blocked_queue);
-    }
-    release(sem_node->semaphore.sem_lock);
-}
-
-int64_t sem_post(char *sem_id){
-    list_t * sem_node;
-    if((sem_node = find_sem(sem_id)) == NULL)
-        return 1;
-
-    acquire(sem_node->semaphore.sem_lock);
-    if (sem_node->semaphore.value == 0){
-        unblock_process_from_queue(sem_node->semaphore.blocked_queue);
-    }
-    (sem_node->semaphore.value)++;
-    release(sem_node->semaphore.sem_lock);
-    return 0;
-}
-
-// void sem_post(sem_t *sem){
-//     acquire(sem->sem_lock);
-//     if (sem->value == 0){
-//         unblock_process_from_queue(sem->blocked_queue);
-//     }
-//     (sem->value)++;
-//     release(sem->sem_lock);       
-// }
