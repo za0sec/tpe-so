@@ -6,6 +6,7 @@
 #include <memManager.h>
 #include <stdint.h>
 #include <scheduler.h>
+#include <semaphore.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -155,7 +156,6 @@ static void *sys_mem_init(int s) {
 /* Funciones del scheduler */
 
 static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
-    int a = argv;
     return create_process(priority, program, argc, argv);
 }
 

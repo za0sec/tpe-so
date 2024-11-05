@@ -9,8 +9,9 @@ typedef struct q_cdt * q_adt;
 typedef struct pcb {
     uint64_t pid;
     void *rsp;
-    int assigned_quantum;
-    int used_quantum;
+    uint8_t priority;
+    uint8_t assigned_quantum;
+    uint8_t used_quantum;
     enum {
         READY,
         RUNNING,
@@ -24,9 +25,11 @@ typedef struct q_cdt * q_adt;
 
 size_t get_size(q_adt q);
 
+/** 
+ * @return El proceso buscado, si no existe retorna un proceso nulo: (pcb_t){-1, 0, 0, 0, TERMINATED}; 
+ */
 pcb_t find_dequeue_pid(q_adt q, uint64_t pid);
 
-// Funciones de la cola
 /**
  * @brief Crea una nueva cola circular doblemente enlazada
  * 
