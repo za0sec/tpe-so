@@ -1,7 +1,14 @@
 include Makefile.inc
 
 KERNEL=kernel.bin
-SOURCES=$(wildcard *.c drivers/*.c interrupt/*.c scheduler/*.c )
+
+ifeq ($(BUDDY), YES)
+SOURCES_ALL=$(wildcard *.c drivers/*.c interrupt/*.c scheduler/*.c mmu/buddy/*.c)
+else
+SOURCES_ALL=$(wildcard *.c drivers/*.c interrupt/*.c scheduler/*.c mmu/standard/*.c)
+endif
+
+SOURCES=$(SOURCES_ALL)
 SOURCES_ASM=$(wildcard asm/*.asm)
 OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)
@@ -26,6 +33,6 @@ $(LOADEROBJECT):
 	$(ASM) $(ASMFLAGS) $(LOADERSRC) -o $(LOADEROBJECT)
 
 clean:
-	rm -rf asm/*.o *.o */*.o *.bin *.elf
+	rm -rf asm/*.o *.o */*.o *.bin *.elf */*/*.o
 
 .PHONY: all clean

@@ -22,9 +22,11 @@ extern void _hlt();
 
 static const uint64_t PageSize = 0x1000;
 
+#define MEM_SIZE 1024*1024
+
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
-static void * const memManagerModuleAddress = (void*)0x300000;
+static void * const memManagerModuleAddress = (void*)0x700000;
 
 typedef int (*EntryPoint)();
 
@@ -47,12 +49,12 @@ void * initializeKernelBinary()
 	void * moduleAddresses[] = {
 		sampleCodeModuleAddress,
 		sampleDataModuleAddress,
-		memManagerModuleAddress
 	};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
 
 	clearBSS(&bss, &endOfKernel - &bss);
+	mem_init(memManagerModuleAddress, MEM_SIZE);
 	return getStackBase();
 }
 
@@ -80,12 +82,7 @@ int main()
 	load_idt();
 	setCeroChar();
 
-	mem_init(memManagerModuleAddress);
-
 	init_scheduler();
-	// create_process(5, &test_process_1, 0, NULL);
-	// create_process(5, &test_process_2, 0, NULL);
-	// create_process(5, &test_process_3, 0, NULL);
 	create_process(5, sampleCodeModuleAddress, 0, NULL);
 
 	_sti();

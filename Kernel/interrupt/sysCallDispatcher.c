@@ -148,8 +148,8 @@ static void sys_mem_free(void *ptr) {
     mem_free(ptr);
 }
 
-static void *sys_mem_init(int s) {
-    return mem_init(s);
+static void sys_mem_init(void *ptr, int s) {
+    mem_init(ptr, s);
 }
 
 /* Funciones del scheduler */
