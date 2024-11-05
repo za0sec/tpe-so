@@ -1,15 +1,15 @@
 #include <stdint.h>
 #include <string.h>
-#include "lib.h"
+#include <lib.h>
 #include <moduleLoader.h>
 #include <naiveConsole.h>
-#include "videoDriver.h"
-#include "keyboard.h"
-#include "idtLoader.h"
-#include "time.h"
-#include "interrupts.h"
-
-
+#include <videoDriver.h>
+#include <keyboard.h>
+#include <idtLoader.h>
+#include <time.h>
+#include <interrupts.h>
+#include <scheduler.h>
+#include <memManager.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -27,7 +27,6 @@ static void * const sampleDataModuleAddress = (void*)0x500000;
 static void * const memManagerModuleAddress = (void*)0x300000;
 
 typedef int (*EntryPoint)();
-
 
 void clearBSS(void * bssAddress, uint64_t bssSize)
 {
@@ -57,14 +56,40 @@ void * initializeKernelBinary()
 	return getStackBase();
 }
 
+void test_process_1(){
+	while(1){
+		vDriver_prints("1", WHITE, BLACK);
+	}
+}
+
+void test_process_2(){
+	while(1){
+		vDriver_prints("2", BLACK, WHITE);
+	}
+}
+
+void test_process_3(){
+	while(1){
+		vDriver_prints("3", WHITE, BLACK);
+	}
+}
 
 int main()
 {	
+	_cli();
 	load_idt();
-
 	setCeroChar();
-    ((EntryPoint)sampleCodeModuleAddress)();
 
+	mem_init(memManagerModuleAddress);
+
+	init_scheduler();
+	// create_process(5, &test_process_1, 0, NULL);
+	// create_process(5, &test_process_2, 0, NULL);
+	// create_process(5, &test_process_3, 0, NULL);
+	create_process(5, sampleCodeModuleAddress, 0, NULL);
+
+	_sti();
+	
     while(1) _hlt();
     return 0;
 }

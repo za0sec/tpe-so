@@ -14,7 +14,10 @@ GLOBAL interrupt_systemCall
 GLOBAL excRegData
 GLOBAL registerInfo
 GLOBAL hasregisterInfo
+GLOBAL acquire
+GLOBAL release
 
+EXTERN schedule
 EXTERN timer_handler
 EXTERN keyboard_handler
 EXTERN syscall_dispatcher
@@ -181,11 +184,25 @@ interrupt_keyboardHandler:
 interrupt_timerHandler:
 	pushState
 
-	call timer_handler
+    mov rdi, rsp
+    call schedule
+    mov rsp, rax
 
-	endOfHardwareInterrupt
-	popState
-	iretq
+    endOfHardwareInterrupt
+
+    popState
+    ;pop rax ; debug a ver si esta el RIP de initProcessWrapper
+    iretq
+
+	;;;; definicion previa de timerHandler
+	; pushState
+
+	; call tick_handler
+	; call timer_handler
+
+	; endOfHardwareInterrupt
+	; popState
+	; iretq
 
 exception_zeroDiv:
 	saveRegistersException
@@ -212,9 +229,22 @@ haltcpu:
 	hlt
 	ret
 
+acquire:
+	mov al, 0
+.retry:
+	xchg [rdi], al
+	test al, al
+	jz .retry
+	ret
+
+release:
+	mov byte [rdi], 1
+	ret	
+
 SECTION .bss
 	aux resq 1
 	excRegData		resq	18
 	registerInfo	resq	17
 	hasregisterInfo 		resb 1
 	shiftKey  	resb 1
+

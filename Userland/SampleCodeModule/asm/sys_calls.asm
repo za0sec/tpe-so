@@ -19,7 +19,17 @@ GLOBAL sys_stopSpeaker
 GLOBAL sys_mem_alloc
 GLOBAL sys_mem_free
 GLOBAL sys_mem_init
-section .text
+GLOBAL sys_create_process
+GLOBAL sys_kill
+GLOBAL sys_getPID
+GLOBAL sys_list_processes
+GLOBAL sys_block
+GLOBAL sys_unblock
+GLOBAL sys_yield
+GLOBAL sys_sem_open
+GLOBAL sys_sem_wait
+GLOBAL sys_sem_post
+GLOBAL sys_sem_close
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9
@@ -136,5 +146,61 @@ sys_mem_free:
 
 sys_mem_init:
     mov rax, 0x14
+    int 80h
+    ret
+
+sys_create_process:
+    mov rax, 0x15
+    mov r10, rcx        ;4to parametro de syscall es R10
+    int 80h
+    ret
+
+sys_kill:
+    mov rax, 0x16
+    int 80h
+    ret
+
+sys_getPID:
+    mov rax, 0x17
+    int 80h
+    ret
+
+sys_list_processes:
+    mov rax, 0x18
+    int 80h
+    ret
+
+sys_block:
+    mov rax, 0x19
+    int 80h
+    ret
+
+sys_unblock:
+    mov rax, 0x1A
+    int 80h
+    ret
+
+sys_yield:
+    mov rax, 0x1B
+    int 80h
+    ret
+
+sys_sem_open:
+    mov rax, 0x1C
+    int 80h
+    ret
+
+sys_sem_close:
+    mov rax, 0x1D
+    int 80h
+    ret
+
+sys_sem_wait:
+    mov rax, 0x1E
+    int 80h
+    ret
+
+sys_sem_post:
+    mov rax, 0x1F
     int 80h
     ret

@@ -6,7 +6,7 @@
 #include <eliminator.h>
 #include <kitty.h>
 #include <ascii.h>
-
+#include <tests.h>
 // initialize all to 0
 char line[MAX_BUFF + 1] = {0};
 char parameter[MAX_BUFF + 1] = {0};
@@ -43,20 +43,25 @@ void printHelp()
 	printsColor("\n    >invopcode          - testeo invalid op code exception", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >eliminator         - launch ELIMINATOR videogame", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >whoami             - prints current username", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >memtest            - test memory manager", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >schetest           - test scheduler", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >priotest           - priority scheduler", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >testschedulerprocesses - test scheduler processes", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >testsync            - test sync processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >memtest            - test memory manager\n", MAX_BUFF, LIGHT_BLUE);
+
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync};
 
 void kitty()
 {
+	welcome();
 	char c;
 	printPrompt();
-
 	while (1 && !terminate)
 	{
 		drawCursor();
@@ -174,12 +179,20 @@ void cmd_whoami()
 
 void cmd_memtest()
 {
-    sys_mem_init(CHUNK_SIZE * CHUNK_COUNT);
-
     char *argv[] = {"100000000000000"};
     if (test_mm(1, argv) == -1){
 		printsColor("test_mm ERROR\n", MAX_BUFF, RED);
 	}
+}
+
+void cmd_schetest()
+{
+    char *argv[] = {"3"};
+	sys_create_process(1, &test_processes, 1, argv);
+}
+
+void cmd_priotest(){
+	test_prio();
 }
 
 void cmd_help()
@@ -319,6 +332,20 @@ void cmd_ascii()
 	}
 }
 
+void cmd_testschedulerprocesses()
+{
+	if (test_scheduler_processes() == -1)
+	{
+		printsColor("test_scheduler_processes ERROR\n", MAX_BUFF, RED);
+	}
+}
+
+void cmd_test_sync() {
+    char *argv[] = {"5", "1"};
+	sys_create_process(1, &test_sync, 2, argv);
+	printsColor("CREATED 'test_sync' PROCESS!\n", MAX_BUFF, RED);
+}
+
 void newLineUsername()
 {
 	strcpy(username, line);
@@ -364,10 +391,11 @@ void welcome()
 		{466, 900}	// A#4
 	};
 
-	playMelody(windowsXPmelody, (sizeof(windowsXPmelody) / sizeof(NoteType)));
+	// playMelody(windowsXPmelody, (sizeof(windowsXPmelody) / sizeof(NoteType)));
 
 	printsColor("\n    Welcome to PIBES OS, an efficient and simple operating system\n", MAX_BUFF, GREEN);
 	printsColor("    Developed by the PIBES team\n", MAX_BUFF, GREEN);
 	printsColor("    Here's a list of available commands\n", MAX_BUFF, GREEN);
 	printHelp();
+	return 0;
 }
