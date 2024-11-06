@@ -17,7 +17,7 @@ typedef struct q_cdt{
 } q_cdt;
 
 q_adt new_q() {
-    q_adt new = mem_alloc(sizeof(q_cdt));
+    q_adt new = (q_adt)mem_alloc(sizeof(q_cdt));
     if (new == NULL) {
         return NULL;
     }
@@ -32,7 +32,7 @@ size_t get_size(q_adt q) {
 
 // Agrega un proceso al final de la cola (rear)
 void add(q_adt q, pcb_t pcb) {
-    q_t aux = mem_alloc(sizeof(node_t));
+    q_t aux = (q_t)mem_alloc(sizeof(node_t));
     
     if (aux == NULL) {
         return;

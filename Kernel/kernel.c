@@ -79,7 +79,7 @@ int main(){
 	setCeroChar();
 
 	init_scheduler();
-	create_process(5, sampleCodeModuleAddress, 0, NULL);
+	create_process(0, sampleCodeModuleAddress, 0, NULL);
 
 	_sti();
 	

@@ -123,7 +123,7 @@ void init_scheduler(){
     p2 = new_q();
     p3 = new_q();
     all_blocked_queue = new_q();
-    current_process = (pcb_t){0, 0, DEFAULT_QUANTUM, 0, TERMINATED};   // El primer proceso seria el kernel 
+    current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED};   // El primer proceso seria el kernel 
 }
 
 uint64_t get_pid(){
