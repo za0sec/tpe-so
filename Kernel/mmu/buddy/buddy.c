@@ -2,10 +2,9 @@
 
 #define MIN_ALLOC 32
 
-#define TOTAL_MEM 1024*1024
-
 typedef enum {
     FREE,
+    DIVIDED,
     FULL
 } state_t;
 
@@ -15,7 +14,7 @@ typedef struct node_t{
     unsigned index;
     void *mem_ptr;
     state_t state;
-    uint32_t size;
+    unsigned size;
 } node_t;
 
 node_t *root;
@@ -24,13 +23,13 @@ node_t *root;
 
 unsigned memory_allocated = 0;
 
-void *rec_alloc(node_t * parent, uint32_t s);
+void *rec_alloc(node_t * parent, unsigned s);
 int rec_free(node_t *node, void *ptr);
 void update_state(node_t *node);
 void create_children(node_t *parent);
-static uint32_t next_power_of_2(uint32_t size);
+static unsigned next_power_of_2(unsigned size);
 
-static uint32_t next_power_of_2(uint32_t size) {
+static unsigned next_power_of_2(unsigned size) {
     size |= size >> 1;
     size |= size >> 2;
     size |= size >> 4;
@@ -55,16 +54,21 @@ void create_children(node_t *parent){
 
     parent->right->index = idx + 1;
     parent->right->size = parent->size / 2;
-    parent->right->state = FREE;
     parent->right->mem_ptr = (void *)((uint64_t)(parent->mem_ptr) + (parent->size / 2));
+    parent->right->state = FREE;
 }
 
 void update_state(node_t *node){
-    if (!node->left || !node->right) {
+    if (!node->right || !node->left) {
         node->state = FREE;
-    } else if (node->left->state == FULL && node->right->state == FULL) {
+        return;
+    }
+    if (node->left->state == FULL && node->right->state == FULL){
         node->state = FULL;
-    } else {
+    }else if (node->left->state == DIVIDED || node->right->state == DIVIDED || node->left->state == FULL || node->right->state == FULL){
+        node->state = DIVIDED;
+    }
+    else{
         node->state = FREE;
     }
 }
@@ -93,9 +97,7 @@ int rec_free(node_t *node, void *ptr){
 }
 
 void mem_free(void *ptr){
-    if(root){
-        rec_free(root, ptr);
-    }
+    if(root) rec_free(root, ptr);
 }
 
 void mem_init(void *ptr, int s){
@@ -107,14 +109,22 @@ void mem_init(void *ptr, int s){
 }
 
 void * mem_alloc(uint32_t s){
-    if(s > root->size || s < MIN_ALLOC) return NULL;
+    if(s > root->size){
+        return NULL;
+    }
 
-    if(!POW_2(s)) s = next_power_of_2(s);
+    if(s < MIN_ALLOC){ 
+        s = MIN_ALLOC;
+    }
+
+    if(!POW_2(s)){
+        s = next_power_of_2(s);
+    }
 
     return rec_alloc(root, s);
 }
 
-void *rec_alloc(node_t *parent, uint32_t s){
+void *rec_alloc(node_t *parent, unsigned s){
     if(parent->state == FULL) return NULL;
 
     if(parent->left || parent->right){
@@ -124,18 +134,20 @@ void *rec_alloc(node_t *parent, uint32_t s){
         }
         update_state(parent);
         return aux;
-    }
+    }else{
+        if (s > parent->size){
+            return NULL;
+        }
 
-    if (s > parent->size) return NULL;
-
-    if(parent->size / 2 >= s){
-        create_children(parent);
-        void * aux = rec_alloc(parent->left, s);
-        update_state(parent);
-        return aux;
+        if(parent->size / 2 >= s){
+            create_children(parent);
+            void * aux = rec_alloc(parent->left, s);
+            update_state(parent);
+            return aux;
+        }
+        
+        parent->state = FULL;
+        memory_allocated += s;
+        return parent->mem_ptr;
     }
-    
-    parent->state = FULL;
-    memory_allocated += s;
-    return parent->mem_ptr;
 }

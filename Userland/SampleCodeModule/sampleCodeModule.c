@@ -5,7 +5,7 @@
 #include <tests.h>
 
 int main(uint64_t argc, char *argv[]) {
-	sys_create_process(5, &kitty, 0, argv);
+	kitty();
 
 	return 0;
 }
