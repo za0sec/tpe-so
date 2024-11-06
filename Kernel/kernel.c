@@ -22,19 +22,19 @@ extern void _hlt();
 
 static const uint64_t PageSize = 0x1000;
 
+#define MEM_SIZE 1024*1024
+
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
-static void * const memManagerModuleAddress = (void*)0x300000;
+static void * const memManagerModuleAddress = (void*)0x700000;
 
 typedef int (*EntryPoint)();
 
-void clearBSS(void * bssAddress, uint64_t bssSize)
-{
+void clearBSS(void * bssAddress, uint64_t bssSize){
 	memset(bssAddress, 0, bssSize);
 }
 
-void * getStackBase()
-{
+void * getStackBase(){
 	return (void*)(
 		(uint64_t)&endOfKernel
 		+ PageSize * 8				//The size of the stack itself, 32KiB
@@ -42,17 +42,16 @@ void * getStackBase()
 	);
 }
 
-void * initializeKernelBinary()
-{
+void * initializeKernelBinary(){
 	void * moduleAddresses[] = {
 		sampleCodeModuleAddress,
 		sampleDataModuleAddress,
-		memManagerModuleAddress
 	};
 
 	loadModules(&endOfKernelBinary, moduleAddresses);
 
 	clearBSS(&bss, &endOfKernel - &bss);
+	mem_init(memManagerModuleAddress, MEM_SIZE);
 	return getStackBase();
 }
 
@@ -74,19 +73,13 @@ void test_process_3(){
 	}
 }
 
-int main()
-{	
+int main(){	
 	_cli();
 	load_idt();
 	setCeroChar();
 
-	mem_init(memManagerModuleAddress);
-
 	init_scheduler();
-	// create_process(5, &test_process_1, 0, NULL);
-	// create_process(5, &test_process_2, 0, NULL);
-	// create_process(5, &test_process_3, 0, NULL);
-	create_process(0, sampleCodeModuleAddress, 0, NULL);
+	create_process(5, sampleCodeModuleAddress, 0, NULL);
 
 	_sti();
 	
