@@ -58,7 +58,7 @@ int has_next(q_adt q){
 
 pcb_t dequeue(q_adt q){
     if(q->rear == NULL){
-        return (pcb_t){-1, 0, 0, 0, TERMINATED};
+        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
     }
 
     pcb_t to_ret = q->rear->next->pcb;     // El frente de la cola es REAR->NEXT
@@ -78,7 +78,7 @@ pcb_t dequeue(q_adt q){
 
 pcb_t find_dequeue_pid(q_adt q, uint64_t pid) {
     if (q->rear == NULL) {  // Si la cola está vacía, retornar un PCB "nulo"
-        return (pcb_t){-1, 0, 0, 0, TERMINATED};
+        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
     }
 
     q_t current = q->rear; // Comenzamos desde el final
@@ -110,7 +110,7 @@ pcb_t find_dequeue_pid(q_adt q, uint64_t pid) {
     } while(current != q->rear); 
 
     // No se encontro el proceso con el pid 
-    return (pcb_t){-1, 0, 0, 0, TERMINATED};
+    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
 }
 
 

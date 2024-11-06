@@ -86,7 +86,7 @@ int main()
 	// create_process(5, &test_process_1, 0, NULL);
 	// create_process(5, &test_process_2, 0, NULL);
 	// create_process(5, &test_process_3, 0, NULL);
-	create_process(5, sampleCodeModuleAddress, 0, NULL);
+	create_process(0, sampleCodeModuleAddress, 0, NULL);
 
 	_sti();
 	
