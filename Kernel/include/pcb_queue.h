@@ -4,10 +4,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-typedef struct q_cdt * q_adt;
-
 typedef struct pcb {
-    uint64_t pid;
+    int pid;
     void *rsp;
     uint8_t priority;
     uint8_t assigned_quantum;

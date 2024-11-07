@@ -4,12 +4,12 @@
 #include <memManager.h>
 #include <stdio.h>
 
-typedef struct node * q_t;
-
 typedef struct node{
     pcb_t pcb;
     struct node * next;
 } node_t;
+
+typedef struct node * q_t;
 
 typedef struct q_cdt{
     q_t rear;

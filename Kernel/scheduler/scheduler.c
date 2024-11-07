@@ -231,7 +231,7 @@ uint8_t add_priority_queue(pcb_t process){
 /**
  * @brief Busca y popea el proceso en todas las colas de scheduler.c
  * 
- * @return pcb_t el proceso encontrado, o un proceso nulo: (pcb_t){-1, 0, 0, 0, TERMINATED} si no existe
+ * @return pcb_t el proceso encontrado, o un proceso nulo: (pcb_t){-1, 0, 0, 0, 0, TERMINATED} si no existe
  */
 pcb_t find_dequeue_priority(uint64_t pid){
     pcb_t process;

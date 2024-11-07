@@ -38,6 +38,14 @@ static unsigned next_power_of_2(unsigned size) {
     return size + 1;
 }
 
+// static unsigned next_power_of_2(unsigned size) {
+//     unsigned power = 1;
+//     while (power < size) {
+//         power <<= 1;
+//     }
+//     return power;
+// }
+
 void create_children(node_t *parent){
     unsigned idx = parent->index * 2 + 1;
 
