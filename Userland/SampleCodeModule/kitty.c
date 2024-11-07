@@ -278,6 +278,12 @@ void handleSpecialCommands(char c)
 	}
 }
 
+void cmd_ps(){
+	char *buffer;
+	sys_list_processes(buffer);
+	prints(buffer, strlen(buffer));
+}
+
 void cmd_eliminator()
 {
 	int numPlayers;
