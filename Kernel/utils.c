@@ -60,3 +60,43 @@ char *strcpyForParam(char *dest, const char *src, const char *src2){
 	dest[i] = 0;
 	return dest;
 }
+
+// Convierte un entero a cadena
+void intToStr(int value, char *str)
+{
+    int index = 0;
+    int isNegative = 0;
+
+    if (value == 0)
+    {
+        str[index++] = '0';
+        str[index] = '\0';
+        return;
+    }
+
+    if (value < 0)
+    {
+        isNegative = 1;
+        value = -value;
+    }
+
+    while (value > 0)
+    {
+        str[index++] = (value % 10) + '0';
+        value /= 10;
+    }
+
+    if (isNegative)
+    {
+        str[index++] = '-';
+    }
+
+    str[index] = '\0';
+
+    for (int i = 0; i < index / 2; i++)
+    {
+        char temp = str[i];
+        str[i] = str[index - i - 1];
+        str[index - i - 1] = temp;
+    }
+}

@@ -147,10 +147,10 @@ uint64_t get_pid(){
 
 // TODO: Terminar!
 void list_processes(char *buf){
-    //TODO: Cambiar el tamaño
+    // TODO: Cambiar el tamaño
     // buf = mem_alloc();
 
-    //TODO: Header
+    // TODO: Header
 
 
     // if(current_process.pid != -1){
@@ -169,32 +169,32 @@ void list_processes(char *buf){
     //     }
     // }
 
-    // return;
+    return;
 }
 
-void add_proccess_to_buffer(pcb_t process, char *buf){
-    char *state = get_state_string(process.state);
-    //TODO:lenarlo
+// void add_proccess_to_buffer(pcb_t process, char *buf){
+//     char *state = get_state_string(process.state);
+//     //TODO:lenarlo
 
-}
+// }
 
-char *get_state_string(int state){
-    char *state_string;
-    switch(state){
-        case READY:
-            state_string = "READY";
-            break;
-        case RUNNING:
-            state_string = "RUNNING";
-            break;
-        case BLOCKED:
-            state_string = "BLOCKED";
-            break;
-        case TERMINATED:
-            state_string = "TERMINATED";
-            break;
-    }
-}
+// char *get_state_string(int state){
+//     char *state_string;
+//     switch(state){
+//         case READY:
+//             state_string = "READY";
+//             break;
+//         case RUNNING:
+//             state_string = "RUNNING";
+//             break;
+//         case BLOCKED:
+//             state_string = "BLOCKED";
+//             break;
+//         case TERMINATED:
+//             state_string = "TERMINATED";
+//             break;
+//     }
+// }
 
 uint64_t kill_process(uint64_t pid){
     pcb_t process;

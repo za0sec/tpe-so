@@ -10,6 +10,7 @@
 #include <interrupts.h>
 #include <scheduler.h>
 #include <memManager.h>
+#include <pipe.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -79,6 +80,7 @@ int main(){
 	setCeroChar();
 
 	init_scheduler();
+	init_pipes();
 	create_process(0, sampleCodeModuleAddress, 0, NULL);
 
 	_sti();

@@ -1,5 +1,6 @@
 #include <scheduler.h>
 #include <semaphore.h>
+#include <utils.h>
 
 typedef struct list_t {
     sem_t semaphore;

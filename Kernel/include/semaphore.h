@@ -2,6 +2,7 @@
 #define _SEMAPHORE_H
 
 #include <stdint.h>
+#include <scheduler.h>
 
 #define SEMAPHORE_NAME_SIZE 32
 
