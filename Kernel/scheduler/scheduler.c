@@ -144,32 +144,32 @@ uint64_t get_pid(){
     // }
 
 
-// TODO: esto
-// TODO: Implementar con las multiples queues
+
+// TODO: Terminar!
 void list_processes(char *buf){
     //TODO: Cambiar el tamaño
-    buf = mem_alloc();
+    // buf = mem_alloc();
 
     //TODO: Header
 
 
-    if(current_process.pid != -1){
-        add_proccess_to_buffer(current_process, buf);
-    }
+    // if(current_process.pid != -1){
+    //     add_proccess_to_buffer(current_process, buf);
+    // }
 
-    pcb_t process;
-    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    // pcb_t process;
+    // q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
 
-    for(int i = 0; i < TOTAL_QUEUES; i++){
-        q_adt current = queues[i];
-        while(has_next(current)){
-            process = dequeue(current);
-            add_proccess_to_buffer(process, buf);
-            add(current, process);
-        }
-    }
+    // for(int i = 0; i < TOTAL_QUEUES; i++){
+    //     q_adt current = queues[i];
+    //     while(has_next(current)){
+    //         process = dequeue(current);
+    //         add_proccess_to_buffer(process, buf);
+    //         add(current, process);
+    //     }
+    // }
 
-    return;
+    // return;
 }
 
 void add_proccess_to_buffer(pcb_t process, char *buf){

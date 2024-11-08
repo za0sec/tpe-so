@@ -184,25 +184,14 @@ interrupt_keyboardHandler:
 interrupt_timerHandler:
 	pushState
 
-    mov rdi, rsp
-    call schedule
-    mov rsp, rax
+	mov rdi, rsp
+	call schedule
+	mov rsp, rax
 
-    endOfHardwareInterrupt
+	endOfHardwareInterrupt
 
-    popState
-    ;pop rax ; debug a ver si esta el RIP de initProcessWrapper
-    iretq
-
-	;;;; definicion previa de timerHandler
-	; pushState
-
-	; call tick_handler
-	; call timer_handler
-
-	; endOfHardwareInterrupt
-	; popState
-	; iretq
+	popState
+	iretq
 
 exception_zeroDiv:
 	saveRegistersException
