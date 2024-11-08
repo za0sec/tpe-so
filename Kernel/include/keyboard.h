@@ -1,17 +1,15 @@
-#ifndef _KEYBOARD_H_
-#define _KEYBOARD_H_
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
-#include "lib.h"
+#include <stdint.h>
 
+// Inicializa el pipe del teclado
+void init_keyboard();
+
+// Manejador del teclado: recibe el scancode del teclado y escribe el código ASCII en el pipe del teclado
 void keyboard_handler(uint8_t keyPressed);
 
-/* Returns character detected from keyboard, Scancodes without ascii symbols will return 0 */
-char getCharFromKeyboard();
+// Lee un carácter ASCII desde el pipe del teclado
+char read_keyboard();
 
-/* Returns the notChar -> use for keys that are not characters */
-unsigned char getNotChar();
-
-/* Clears the notChar var */
-void setCeroChar();
-
-#endif
+#endif // KEYBOARD_H

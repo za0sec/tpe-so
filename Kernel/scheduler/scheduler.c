@@ -41,7 +41,7 @@ uint64_t schedule(void *running_process_rsp){
             //Esto deberia ser aumentar LA PRIORIDAD
             current_process.assigned_quantum++;
         }
-        add_priority_queue(current_process);        
+        add(all_blocked_queue, current_process);
     } else if (current_process.state == READY){
         add_priority_queue(current_process);
     } else {
@@ -207,16 +207,16 @@ uint64_t kill_process(uint64_t pid){
     }
 }
 
-
 // Bloquea el proceso actual y lo agrega a la cola de procesos bloqueados
 uint64_t block_process(){
-    return block_process_to_queue(current_process.pid, all_blocked_queue);
+    current_process.state = BLOCKED;
+    __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
 }
 
-// Bloquea el proceso actual y lo agrega a la cola que recibe por parametro, 
-// y a la cola total de bloqueados
 uint64_t block_current_process_to_queue(q_adt blocked_queue){
-    return block_process_to_queue(current_process.pid, blocked_queue);
+    current_process.state = BLOCKED;
+    add(blocked_queue, current_process);
+    __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
 }
 
 // Bloquea el proceso con el pid, y lo agrega a la cola que recibe por parametro, 
@@ -224,14 +224,15 @@ uint64_t block_current_process_to_queue(q_adt blocked_queue){
 uint64_t block_process_to_queue(uint64_t pid, q_adt dest){
     pcb_t process;
     if(current_process.pid == pid){
-        current_process.state = BLOCKED;
+        block_current_process_to_queue(dest);
     } else if( (process = find_dequeue_priority(pid)).pid > 0){
         process.state = BLOCKED;
-        add(dest, process);
+        add(dest, process);                    // Agrego el proceso a la cola pasada por parametro         
         add(all_blocked_queue, process);
     } else {
         return -1;
     }
+    return 0;
 }
 
 // Desbloquea el primer proceso esperando en la cola recibida por parametro

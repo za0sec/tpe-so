@@ -77,10 +77,10 @@ void test_process_3(){
 int main(){	
 	_cli();
 	load_idt();
-	setCeroChar();
 
-	init_scheduler();
 	init_pipes();
+	init_scheduler();
+	init_keyboard();
 	create_process(0, sampleCodeModuleAddress, 0, NULL);
 
 	_sti();

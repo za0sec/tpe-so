@@ -12,7 +12,7 @@ uint16_t current_id = 0;
 List *pipe_list;
 
 int init_pipes(){
-    pipe_list = list_init(compare_pipes);\
+    pipe_list = list_init(compare_pipes);
     if (pipe_list == NULL) {
         return -1;
     }
@@ -109,7 +109,7 @@ pipe *pipe_init() {
 
     new_pipe->sem_name_data_available = mem_alloc(sizeof(char) * SEMAPHORE_NAME_SIZE);
     get_semaphore_name("pipe_sem", new_pipe->id, new_pipe->sem_name_data_available);
-    sem_open(new_pipe->sem_name_data_available, 1);
+    sem_open(new_pipe->sem_name_data_available, 0);
     
     new_pipe->sem_name_mutex = mem_alloc(sizeof(char) * SEMAPHORE_NAME_SIZE);
     get_semaphore_name("pipe_mutex", new_pipe->id, new_pipe->sem_name_mutex);

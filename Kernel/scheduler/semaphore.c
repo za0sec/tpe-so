@@ -13,7 +13,7 @@ list_t * add_sem(list_t **head, char * name, int initialValue) {
     list_t * new_node = (list_t *) mem_alloc(sizeof(list_t));
     strcpy(new_node->semaphore.name, name, strlen(name));
     new_node->semaphore.value = initialValue;
-    new_node->semaphore.sem_lock = 0;
+    new_node->semaphore.sem_lock = 1;       //TODO: que valor toma al init?
     new_node->semaphore.blocked_queue = new_q();
 
     if (*head == NULL) {
@@ -74,9 +74,9 @@ int64_t sem_open(char *sem_id, uint64_t initialValue){
     list_t * aux = find_sem(sem_id);
     if(aux == NULL)
         aux = add_sem(&sem_list, sem_id, initialValue);
-    acquire(aux->semaphore.sem_lock);
-    aux->semaphore.value++;
-    release(aux->semaphore.sem_lock);
+    // acquire(aux->semaphore.sem_lock);
+    // aux->semaphore.value++; pq mierda estaba esta linea aca?????
+    // release(aux->semaphore.sem_lock);
     return 0;
 }
 

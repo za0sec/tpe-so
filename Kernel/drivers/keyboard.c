@@ -1,11 +1,8 @@
-#include "keyboard.h"
-#include "time.h"
 #include <stdint.h>
+#include <keyboard.h>
+#include <pipe.h>
 
-unsigned char notChar = 0;
-static char retChar = 0;
-static int shift = 0;
-static int capsLock = 0;
+int keyboard_pipe_id;
 
 static const char keyMapL[] = {
     0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
@@ -60,52 +57,50 @@ static const char *const keyMap[] = {keyMapL, keyMapU};
  * Down: 0x50
  */
 
-void keyboard_handler(uint8_t keyPressed)
-{
-    notChar = keyPressed;
+void init_keyboard(){
+    keyboard_pipe_id = pipe_create();
+}
+
+// Keyboard handler: consigue el scancode del keyboard y escribe al pipe del teclado el ascii code
+void keyboard_handler(uint8_t keyPressed){
+    unsigned char input_code = 0;
+    char ascii_code = 0;
+    int shift = 0;
+    int caps_lock = 0;
+    input_code = keyPressed;
 
     // shift pressed
-    if (notChar == 0x2A || notChar == 0x36)
+    if (input_code == 0x2A || input_code == 0x36)
     {
         shift = 1;
     }
     // shift not pressed
-    if (notChar == 0xAA || notChar == 0xB6)
+    if (input_code == 0xAA || input_code == 0xB6)
     {
         shift = 0;
     }
-    // capsLock
-    if (notChar == 0x3A)
+    // caps_lock
+    if (input_code == 0x3A)
     {
-        capsLock = (capsLock + 1) % 2;
+        caps_lock = (caps_lock + 1) % 2;
     }
-}
 
-char getCharFromKeyboard()
-{
-    // soltar tecla
-    if (notChar > 0x80 || notChar == 0x0F)
+    if (input_code > 0x80 || input_code == 0x0F)
     {
-        retChar = 0;
+        ascii_code = 0;
     }
-    else if (notChar == 0x48 || notChar == 0x50)
+    else if (input_code == 0x48 || input_code == 0x50)
     {
-        retChar = notChar;
+        ascii_code = input_code;
     }
     else
     {
-        retChar = keyMap[shift][notChar];
+        ascii_code = keyMap[shift][input_code];
     }
 
-    return retChar;
+    pipe_write(keyboard_pipe_id, ascii_code);
 }
 
-void setCeroChar()
-{
-    notChar = 0;
-}
-
-unsigned char getNotChar()
-{
-    return notChar;
-}
+char read_keyboard(){
+    return pipe_read(keyboard_pipe_id);
+}   

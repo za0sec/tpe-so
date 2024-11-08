@@ -23,13 +23,12 @@ extern Color BLACK;
 /* Funciones del sistema */
 
 // Llena buff con el carácter leído del teclado
-static uint64_t sys_read(uint64_t fd, char *buff) {
+static uint64_t sys_read(uint64_t fd) {
     if (fd != STDIN) {
         return -1;
     }
 
-    *buff = getCharFromKeyboard();
-    return 0;
+    return read_keyboard();
 }
 
 static uint64_t sys_write(uint64_t fd, char buffer) {
@@ -205,7 +204,7 @@ static void sys_sem_post(sem_t *sem) {
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
     /* RAX: número de syscall */
-    (void *)sys_read,               // 0
+    (void *)sys_read,      // 0
     (void *)sys_write,              // 1
     (void *)sys_clear,              // 2
     (void *)sys_getHours,           // 3
