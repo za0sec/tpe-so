@@ -49,11 +49,15 @@ uint64_t schedule(void *running_process_rsp){
         mem_free(current_process.rsp);
     } // else: VENGO DE UN HALT!
 
-    current_process = get_next_process();
+    pcb_t next_process = get_next_process();
     
-    if(current_process.state != READY){
-        current_process = halt_process;
+    if(next_process.state != READY){
+        if(current_process.state == HALT){
+            return current_process.rsp;
+        }
+        current_process = create_process_halt();
     } else {
+        current_process = next_process;
         current_process.state = RUNNING;
     }
 
@@ -100,7 +104,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
                         state               //state
                         };
     
-    add_priority_queue(new_process);
+    add_priority_queue(new_process);   
     return new_process.pid;
 }
    
@@ -118,19 +122,27 @@ void halt(){
     }
 }
 
-void create_process_halt(){
+// @returns pcb_t el proceso halt
+pcb_t create_process_halt(){
     void *base_pointer = mem_alloc(STACK_SIZE);
-    if(base_pointer == NULL) return -1;
-    void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, &halt, 0, 0);
+    
+    if(base_pointer == NULL){
+        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+    }
+
+    //TODO: que pongo en argc y argv?
+    void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, &halt, 0, NULL);
+    
     pcb_t new_process = {
-                        -1,                 //pid
+                        currentPID++,       //pid
                         stack_pointer,      //rsp
                         0,                  //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         HALT                //state
                         };
-    halt_process = new_process;
+      
+    return new_process;
 }
 
 void init_scheduler(){
@@ -140,7 +152,6 @@ void init_scheduler(){
     p2 = new_q();
     p3 = new_q();
     all_blocked_queue = new_q();
-    create_process_halt();    
     current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED};   // El primer proceso seria el kernel
 }
 
