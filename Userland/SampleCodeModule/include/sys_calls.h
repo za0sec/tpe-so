@@ -74,5 +74,5 @@ uint64_t sys_sem_wait(void *sem);
 
 uint64_t sys_sem_post(void *sem);
 
-
+void sys_wait_pid(uint64_t pid);
 #endif

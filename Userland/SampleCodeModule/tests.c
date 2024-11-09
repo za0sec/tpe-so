@@ -391,10 +391,10 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   }
 
 
-  // for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-  //   wait(pids[i]);
-  //   wait(pids[i + TOTAL_PAIR_PROCESSES]);
-  // }
+  for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
+    sys_wait_pid(pids[i]);
+    sys_wait_pid(pids[i + TOTAL_PAIR_PROCESSES]);
+  }
   
   // prints("Final value: ", strlen("Final value: "));
   // printDec(global);

@@ -200,6 +200,10 @@ static void sys_sem_post(sem_t *sem) {
     sem_post(sem);
 }
 
+static void sys_wait_pid(uint64_t pid) {
+    wait_pid(pid);
+}
+
 /* Arreglo de punteros a funciones (syscalls) */
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
@@ -235,7 +239,8 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sys_sem_open,           // 28
     (void *)sys_sem_close,          // 29
     (void *)sys_sem_wait,           // 30
-    (void *)sys_sem_post            // 31
+    (void *)sys_sem_post,           // 31
+    (void *)sys_wait_pid            // 32
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

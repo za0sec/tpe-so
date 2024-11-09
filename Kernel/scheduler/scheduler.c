@@ -2,6 +2,7 @@
 #include <memManager.h>
 #include <pcb_queue.h>
 #include <utils.h>
+#include <list.h>
 
 uint64_t currentPID = 0;
 pcb_t current_process;
@@ -14,6 +15,14 @@ q_adt p3 = NULL;
 
 q_adt all_blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
 q_adt blocked_read_queue = NULL;
+
+typedef struct {
+    uint64_t pid;
+    q_adt waiting_queue;
+} wait_entry;
+
+List *waiting_list = NULL;
+
 
 q_adt blocked_semaphore_queue = NULL;
 int current_semaphore = 0;
@@ -47,6 +56,22 @@ uint64_t schedule(void *running_process_rsp){
         add_priority_queue(current_process);
     } else if (current_process.state == TERMINATED){
         mem_free(current_process.rsp);
+
+        if (waiting_list != NULL){
+            wait_entry key = {current_process.pid, NULL};
+            wait_entry *entry = (wait_entry *)list_get(waiting_list, &key);
+            if(entry != NULL){
+                pcb_t waiting_process;
+                while(has_next(entry->waiting_queue)){
+                    waiting_process = dequeue(entry->waiting_queue);
+                    waiting_process.state = READY;
+                    add_priority_queue(waiting_process);
+                }
+                list_remove(waiting_list, entry);
+                free_q(entry->waiting_queue);
+                mem_free(entry);
+            }
+        }
     } // else: VENGO DE UN HALT!
 
     pcb_t next_process = get_next_process();
@@ -349,4 +374,90 @@ pcb_t find_dequeue_priority(uint64_t pid){
     if(process.pid > 0) return process;
 
     return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+}
+
+int compare_wait_entry(const void *a, const void *b){
+    const wait_entry *entry_a = (const wait_entry *)a;
+    const wait_entry *entry_b = (const wait_entry *)b;
+    if (entry_a->pid == entry_b->pid) {
+        return 0;
+    } else if (entry_a->pid < entry_b->pid) {
+        return -1;
+    } else {
+        return 1;
+    }
+}
+
+int find_process_in_priority_queues(uint64_t pid) {
+    q_adt queues[] = {p0, p1, p2, p3};
+    for (int i = 0; i < 4; i++) {
+        if (find_process_in_queue(queues[i], pid)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int find_process_in_queue(q_adt q, uint64_t pid) {
+    size_t size = get_size(q);
+    int found = 0;
+    pcb_t process;
+
+    for (size_t i = 0; i < size; i++) {
+        process = dequeue(q);
+        if (process.pid == pid && process.state != TERMINATED) {
+            found = 1;
+        }
+        // Reagrega el proceso a la colita
+        add(q, process);
+        if (found) {
+            break;
+        }
+    }
+
+    return found;
+}
+
+
+int is_valid_pid(uint64_t pid){
+    if (current_process.pid == pid && current_process.state != TERMINATED){
+        return 1;
+    }
+
+    if (find_process_in_priority_queues(pid)){
+        return 1;
+    }
+
+    if (find_process_in_queue(all_blocked_queue, pid)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+
+void wait_pid(uint64_t pid) {
+    if (!is_valid_pid(pid)) {
+        // El PID esta mal o ya termino!!
+        return;
+    }
+    if (waiting_list == NULL){
+        waiting_list = list_init(compare_wait_entry);
+        if(waiting_list == NULL){
+            return;
+        }
+    }
+
+    wait_entry key = {pid, NULL};
+    wait_entry *entry = (wait_entry *)list_get(waiting_list, &key);
+    if(entry == NULL){
+        entry = (wait_entry *)mem_alloc(sizeof(wait_entry));
+        if(entry == NULL){
+            return;
+        }
+        entry->pid = pid;
+        entry->waiting_queue = new_q();
+        list_add(waiting_list, entry);
+    }
+    block_current_process_to_queue(entry->waiting_queue);
 }
