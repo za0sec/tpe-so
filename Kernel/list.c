@@ -37,6 +37,7 @@ void list_add(List *list, void *data) {
 
 // Elimina el primer elemento que coincide con `data` usando `compare`
 // NO HACE FREE DE LA DATA DEL NODO!
+// Devuelve 1 si se eliminó el elemento, 0 si no se encontró
 int list_remove(List *list, void *data) {
     if (list->head == NULL) { // Lista vacía
         return 0;

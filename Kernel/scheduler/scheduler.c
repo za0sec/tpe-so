@@ -5,6 +5,7 @@
 
 uint64_t currentPID = 0;
 pcb_t current_process;
+pcb_t halt_process;
 
 q_adt p0 = NULL;
 q_adt p1 = NULL;
@@ -44,18 +45,18 @@ uint64_t schedule(void *running_process_rsp){
         add(all_blocked_queue, current_process);
     } else if (current_process.state == READY){
         add_priority_queue(current_process);
-    } else {
-        mem_free(current_process.rsp);      //Process is TERMINATED
-    } 
+    } else if (current_process.state == TERMINATED){
+        mem_free(current_process.rsp);
+    } // else: VENGO DE UN HALT!
 
-    // Si llegue hasta aca, el proceso actual no esta en estado running
     current_process = get_next_process();
-    if(current_process.pid == -1){
-        create_process_halt();
-        current_process = get_next_process();
+    
+    if(current_process.state != READY){
+        current_process = halt_process;
+    } else {
+        current_process.state = RUNNING;
     }
 
-    current_process.state = RUNNING;
     return current_process.rsp;
 }
 
@@ -83,9 +84,13 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
 // Retorna -1 por error
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]){
     void *base_pointer = mem_alloc(STACK_SIZE);
-    if(base_pointer == NULL) return -1;
-    // sp += STACK_SIZE;
+    
+    if(base_pointer == NULL){
+        return -1;
+    }
+
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
+    
     pcb_t new_process = {
                         currentPID++,       //pid
                         stack_pointer,      //rsp
@@ -94,6 +99,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
                         0,                  //used_quantum
                         state               //state
                         };
+    
     add_priority_queue(new_process);
     return new_process.pid;
 }
@@ -113,7 +119,18 @@ void halt(){
 }
 
 void create_process_halt(){
-    create_process_state(0, &halt, TERMINATED, 0, NULL);
+    void *base_pointer = mem_alloc(STACK_SIZE);
+    if(base_pointer == NULL) return -1;
+    void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, &halt, 0, 0);
+    pcb_t new_process = {
+                        -1,                 //pid
+                        stack_pointer,      //rsp
+                        0,                  //priority
+                        DEFAULT_QUANTUM,    //assigned_quantum
+                        0,                  //used_quantum
+                        HALT                //state
+                        };
+    halt_process = new_process;
 }
 
 void init_scheduler(){
@@ -123,7 +140,8 @@ void init_scheduler(){
     p2 = new_q();
     p3 = new_q();
     all_blocked_queue = new_q();
-    current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED};   // El primer proceso seria el kernel 
+    create_process_halt();    
+    current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED};   // El primer proceso seria el kernel
 }
 
 uint64_t get_pid(){
@@ -175,7 +193,6 @@ void list_processes(char *buf){
 // void add_proccess_to_buffer(pcb_t process, char *buf){
 //     char *state = get_state_string(process.state);
 //     //TODO:lenarlo
-
 // }
 
 // char *get_state_string(int state){
@@ -219,8 +236,13 @@ uint64_t block_current_process_to_queue(q_adt blocked_queue){
     __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
 }
 
-// Bloquea el proceso con el pid, y lo agrega a la cola que recibe por parametro, 
-// y a la cola total de bloqueados
+/**
+ * @brief Bloquea el proceso con el pid; Lo agrega a la cola que recibe por parametro,
+ * y a la cola total de bloqueados.
+ *
+ * @param pid El identificador del proceso a bloquear.
+ * @param queue La cola personalizada a la que se agregará el proceso bloqueado.
+ */
 uint64_t block_process_to_queue(uint64_t pid, q_adt dest){
     pcb_t process;
     if(current_process.pid == pid){
@@ -235,11 +257,29 @@ uint64_t block_process_to_queue(uint64_t pid, q_adt dest){
     return 0;
 }
 
-// Desbloquea el primer proceso esperando en la cola recibida por parametro
-// y lo quita de la cola de all_blocked
+/**
+ * @brief Desbloquea el primer proceso esperando en la cola recibida por parámetro y lo quita de la cola de all_blocked.
+ *
+ * Esta función busca el primer proceso en la cola especificada, lo desbloquea y lo elimina de la cola global de procesos bloqueados.
+ *
+ * @param queue La cola de procesos de la cual se desea desbloquear el primer proceso.
+ * @returns 0 en caso de éxito, -1 si no se encontró el proceso en la cola.
+ */
 uint64_t unblock_process_from_queue(q_adt src){
-    pcb_t process = dequeue(src);                           // Pop el primer proceso
-    find_dequeue_pid(all_blocked_queue, process.pid);       // Ademas lo elimino de la cola de bloqueados
+    pcb_t aux = dequeue(src);    // Pop el primer proceso 
+
+    if(aux.pid < 0){
+        return -1;
+    }
+
+    // EN LA COLA AUXILIAR NO ESTA EL CONTEXTO DEL PROCESO! NO PUEDO DESBLOQUEARLO USANDO ESE PCB!
+
+    pcb_t process = find_dequeue_pid(all_blocked_queue, aux.pid);       // Ademas lo elimino de la cola de bloqueados
+
+    if(process.pid < 0){
+        return -1;
+    }
+
     process.state = READY;
     add_priority_queue(process);
 }

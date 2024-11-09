@@ -25,7 +25,7 @@ int pipe_create();
 
 // Destruye el pipe especificado por `pipe_id` y libera sus recursos
 // Devuelve 1 si se eliminó exitosamente o 0 si no se encontró
-int pipe_destroy(uint16_t pipe_id);
+void pipe_destroy(uint16_t pipe_id);
 
 // Lee un char del pipe especificado por `pipe_id`
 // Devuelve el carácter leído o -1 si el pipe no existe o la lectura falla

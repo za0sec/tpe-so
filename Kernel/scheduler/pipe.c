@@ -29,19 +29,17 @@ int pipe_create(){
     return new_pipe->id;
 }
 
-// Devuelve 0 si se eliminó el pipe, != 0 si no se encontró.
-int pipe_destroy(uint16_t pipe_id){
+// Destruye el pipe especificado por `pipe_id` y libera sus recursos
+void pipe_destroy(uint16_t pipe_id){
     pipe target_pipe = {.id = pipe_id};
     pipe* found_pipe = (pipe *)list_get(pipe_list, &target_pipe);
 
     if(found_pipe == NULL){
-        return 0;
+        return;
     }
 
-    int to_ret = list_remove(pipe_list, found_pipe);
+    list_remove(pipe_list, found_pipe);
     pipe_free(found_pipe);
-    
-    return to_ret;
 }
 
 // Lee un char del pipe. NULL si el pipe no existe.
@@ -63,7 +61,13 @@ char pipe_read(uint16_t pipe_id){
     return c;
 }
 
-// Escribe un char al pipe. Retorna 0 si se escribió correctamente, -1 si el pipe no se pudo escribir o el pipe no existe.
+/**
+ * Escribe un char al pipe.
+ *
+ * @param pipe_id El identificador del pipe al que se desea escribir.
+ * @param c El carácter que se desea escribir en el pipe.
+ * @return Retorna 0 si se escribió correctamente, -1 si el pipe no se pudo escribir o el pipe no existe.
+ */
 int pipe_write(uint16_t pipe_id, char c){
     pipe target_pipe = {.id = pipe_id};
     pipe *found_pipe = (pipe *)list_get(pipe_list, &target_pipe);
@@ -76,11 +80,10 @@ int pipe_write(uint16_t pipe_id, char c){
     found_pipe->buffer[found_pipe->write_index] = c;
     found_pipe->write_index = (found_pipe->write_index + 1) % BUFF_SIZE;      // Modulo para que se reinicie al llegar la final del array
 
-    sem_post(found_pipe->sem_name_data_available);
     sem_post(found_pipe->sem_name_mutex);
+    sem_post(found_pipe->sem_name_data_available);
 
     return 0;
-
 }
 
 // Compare: compara los id`s de dos pipe
@@ -107,11 +110,11 @@ pipe *pipe_init() {
     new_pipe->read_index = 0;
     new_pipe->write_index = 0;
 
-    new_pipe->sem_name_data_available = mem_alloc(sizeof(char) * SEMAPHORE_NAME_SIZE);
+    new_pipe->sem_name_data_available = (char *)mem_alloc(sizeof(char) * SEMAPHORE_NAME_SIZE);
     get_semaphore_name("pipe_sem", new_pipe->id, new_pipe->sem_name_data_available);
     sem_open(new_pipe->sem_name_data_available, 0);
     
-    new_pipe->sem_name_mutex = mem_alloc(sizeof(char) * SEMAPHORE_NAME_SIZE);
+    new_pipe->sem_name_mutex = (char *)mem_alloc(sizeof(char) * SEMAPHORE_NAME_SIZE);
     get_semaphore_name("pipe_mutex", new_pipe->id, new_pipe->sem_name_mutex);
     sem_open(new_pipe->sem_name_mutex, 1);
 

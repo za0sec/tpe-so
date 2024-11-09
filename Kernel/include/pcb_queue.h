@@ -14,7 +14,8 @@ typedef struct pcb {
         READY,
         RUNNING,
         BLOCKED,
-        TERMINATED
+        TERMINATED,
+        HALT
     } state;
 } pcb_t;
 
