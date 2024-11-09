@@ -185,7 +185,7 @@ static void sched_yield() {
 /* Funciones de semáforos */
 
 static sem_t *sys_sem_open(char *sem_name, int init_value) {
-    return sem_open(sem_name, init_value);
+    sem_open(sem_name, init_value);
 }
 
 static void sys_sem_close(sem_t *sem) {

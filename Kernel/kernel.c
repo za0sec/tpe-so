@@ -78,6 +78,7 @@ int main(){
 	_cli();
 	load_idt();
 
+	init_semaphores();
 	init_pipes();
 	init_scheduler();
 	init_keyboard();
