@@ -2,6 +2,7 @@
 #include <memManager.h>
 #include <pcb_queue.h>
 #include <utils.h>
+#include <file_descriptor.h>
 
 uint64_t currentPID = 0;
 pcb_t current_process;
@@ -75,7 +76,7 @@ pcb_t get_next_process(){
     } else if(has_next(p3)){
         next_process = dequeue(p3);
     } else {
-        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED, NULL};
     }
     return next_process;
 }
@@ -86,7 +87,11 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
 }
 
 // Retorna -1 por error
-uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]){
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint8_t is_foreground, open_file_t *fds[MAX_FD], uint64_t fd_count){
+    if(is_foreground && fd_count < 3){
+        return -1;
+    }
+    
     void *base_pointer = mem_alloc(STACK_SIZE);
     
     if(base_pointer == NULL){
@@ -95,13 +100,27 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
 
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
     
+    open_file_t *fd_table[MAX_FD] = {NULL};
+    uint8_t fd_idx = 0;
+
+    if(is_foreground){
+        fd_table[0] = get_stdin();
+        fd_table[1] = get_stdout();
+        fd_idx = 2;
+    }
+
+    for(;fd_idx < fd_count; fd_idx++){
+        fd_table[fd_idx] = fds[fd_idx];
+    }
+
     pcb_t new_process = {
                         currentPID++,       //pid
                         stack_pointer,      //rsp
                         priority,           //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
-                        state               //state
+                        state,              //state
+                        fd_table
                         };
     
     add_priority_queue(new_process);   
@@ -127,7 +146,7 @@ pcb_t create_process_halt(){
     void *base_pointer = mem_alloc(STACK_SIZE);
     
     if(base_pointer == NULL){
-        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED, NULL};
     }
 
     //TODO: que pongo en argc y argv?
@@ -139,7 +158,8 @@ pcb_t create_process_halt(){
                         0,                  //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
-                        HALT                //state
+                        HALT,               //state
+                        NULL
                         };
       
     return new_process;
@@ -152,7 +172,7 @@ void init_scheduler(){
     p2 = new_q();
     p3 = new_q();
     all_blocked_queue = new_q();
-    current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED};   // El primer proceso seria el kernel
+    current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED, NULL};   // El primer proceso seria el kernel
 }
 
 uint64_t get_pid(){
@@ -306,6 +326,39 @@ uint64_t unblock_process(uint64_t pid){
     }
 }
 
+//Agrega un FD al proceso actual
+//@returns el indice del FD en la tabla de FD del proceso actual, -1 si no se pudo agregar
+int add_file_descriptor_current_process(uint64_t fd_id){
+    //TODO: ESTA MAL EL COMPARE!
+    for(int i = 0; i < MAX_FD; i++){
+        if(compare_file_descriptors(current_process.fd_table[i], fd) == 0){
+            return i;
+        }
+    }
+
+    for(int i = 0; i < MAX_FD; i++){
+        if(current_process.fd_table[i] == NULL){
+            current_process.fd_table[i] = fd;
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+//Elimina un FD de la tabla de FD del proceso actual
+//@returns 1 si se elimino correctamente, 0 si no se encontro
+int remove_file_descriptor_current_process(open_file_t *fd){
+    //TODO: ESTA MAL EL COMPARE!
+    for(int i = 0; i < MAX_FD; i++){
+        if(compare_file_descriptors(current_process.fd_table[i], fd) == 0){
+            current_process.fd_table[i] = NULL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void yield(){
     current_process.state = READY;
 }
@@ -348,5 +401,5 @@ pcb_t find_dequeue_priority(uint64_t pid){
     process = find_dequeue_pid(p3, pid);
     if(process.pid > 0) return process;
 
-    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED, NULL};
 }

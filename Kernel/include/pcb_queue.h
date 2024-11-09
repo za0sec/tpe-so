@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <file_descriptor.h>
+
+#define MAX_FD 10
 
 typedef struct pcb {
     int pid;
@@ -17,6 +20,7 @@ typedef struct pcb {
         TERMINATED,
         HALT
     } state;
+    open_file_t *fd_table[MAX_FD];
 } pcb_t;
 
 // Estructura para manejar la cola

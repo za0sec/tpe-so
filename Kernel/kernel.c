@@ -11,6 +11,7 @@
 #include <scheduler.h>
 #include <memManager.h>
 #include <pipe.h>
+#include <file_descriptor.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -78,6 +79,7 @@ int main(){
 	_cli();
 	load_idt();
 
+	init_file_descriptors();
 	init_semaphores();
 	init_pipes();
 	init_scheduler();
