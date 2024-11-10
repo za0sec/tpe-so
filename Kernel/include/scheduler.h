@@ -25,8 +25,8 @@ pcb_t get_next_process();
 void initProcessWrapper(program_t program, uint64_t argc, char **argv);
 
 // Process management
-uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]);
-uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[]);
+uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
 pcb_t create_process_halt();
 uint64_t kill_process(uint64_t pid);
 uint64_t block_process();
@@ -37,6 +37,7 @@ uint64_t unblock_process(uint64_t pid);
 uint64_t get_pid();
 int add_file_descriptor_current_process(open_file_t *fd);
 int remove_file_descriptor_current_process(open_file_t *fd);
+pcb_t get_current_process();
 void list_processes(char *buf);
 void yield();
 

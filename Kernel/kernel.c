@@ -84,7 +84,7 @@ int main(){
 	init_pipes();
 	init_scheduler();
 	init_keyboard();
-	create_process(0, sampleCodeModuleAddress, 0, NULL);
+	create_process(0, sampleCodeModuleAddress, 0, NULL, NULL, 0);
 
 	_sti();
 	

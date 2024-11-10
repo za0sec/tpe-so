@@ -1,11 +1,11 @@
-#ifndef __queue
-#define __queue
+#ifndef PCB_QUEUE_H
+#define PCB_QUEUE_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <open_file_t.h>
 #include <file_descriptor.h>
-
-#define MAX_FD 10
 
 typedef struct pcb {
     int pid;

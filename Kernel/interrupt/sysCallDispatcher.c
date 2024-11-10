@@ -155,7 +155,8 @@ static void sys_mem_init(void *ptr, int s) {
 /* Funciones del scheduler */
 
 static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
-    return create_process(priority, program, argc, argv);
+    // TODO: Implementar fd_ids y fd_count!!
+    return create_process(priority, program, argc, argv, NULL, 0);
 }
 
 static void sched_kill_process(uint64_t pid) {
@@ -200,6 +201,10 @@ static void sys_sem_post(sem_t *sem) {
     sem_post(sem);
 }
 
+static char sys_read_fd(uint64_t fd_index) {
+    return fd_read(fd_index);
+}
+
 /* Arreglo de punteros a funciones (syscalls) */
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
@@ -235,7 +240,9 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sys_sem_open,           // 28
     (void *)sys_sem_close,          // 29
     (void *)sys_sem_wait,           // 30
-    (void *)sys_sem_post            // 31
+    (void *)sys_sem_post,           // 31
+    (void *)sys_read_fd,            // 32
+    
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

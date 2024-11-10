@@ -1,14 +1,16 @@
-#include <file_descriptor.h>
 #include <scheduler.h>
 #include <stdlib.h>
 #include <list.h>
 #include <memManager.h>
 #include <keyboard.h>
+#include <pcb_queue.h>
+#include <open_file_t.h>
+#include <file_descriptor.h>
 
 List *open_file_descriptors_list;
-uint64_t current_id = 0;
-open_file_t *STDIN;
-open_file_t *STDOUT;
+uint64_t current_fd_id = 0;
+open_file_t *open_file_t_stdin;
+open_file_t *open_file_t_stdout;
 
 // TODO: syscalls read y write, openfd y closefd
 
@@ -26,7 +28,7 @@ open_file_t *STDOUT;
 *             deberia acceder a la PCB del current_process, para conseguir el open_file_descriptor_ID, y llamar
 *             a la funcion read del FD.
 
-*   - writeFD: recibe el INDICIE del FD en la tabla de FD del CURRENT PROCESS, y llama a la funcion write del FD:
+*   - writeFD: recibe el INDICE del FD en la tabla de FD del CURRENT PROCESS, y llama a la funcion write del FD:
 */
 
 /*      PIPES
@@ -36,47 +38,121 @@ open_file_t *STDOUT;
 * para que el proceso pueda referenciarlo en el futuro.
 */
 
-int compare_file_descriptors(void *this, void *other_fd) {
-    //TODO
-    return 0;
+int compare_file_descriptors(void *this, void *other) {
+    open_file_t *fd_a = (open_file_t *)this;
+    open_file_t *fd_b = (open_file_t *)other;
+    return fd_a->id - fd_b->id;
+}
+
+int compare_file_descriptors_id(open_file_t *fd, uint64_t id) {
+    return fd->id - id;
 }
 
 void init_file_descriptors(){
     open_file_descriptors_list = list_init(compare_file_descriptors);
-    STDIN = create_fd(read_keyboard, NULL, NULL);
-    // STDOUT = TODO: create_fd(write_screen, NULL, NULL);
-
-    if (open_file_descriptors_list == NULL) {
-        return -1;
-    }
-
-    return 0;
+    open_file_t_stdin = fd_create(NULL, read_keyboard, NULL, NULL);
+    // open_file_t_stdout = TODO: fd_create(write_screen, NULL, NULL);
 }
 
-open_file_t *get_stdin(){
-    return STDIN;
-}
-
-open_file_t *get_stdout(){
-    return STDOUT;
-}
-
-//@returns el indice del FD en la tabla de FD del proceso actual
-int fd_manager_open(uint64_t id){
-    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id);
+char fd_read(uint64_t fd_index){
+    pcb_t process = get_current_process();
     
-    if(found_fd == NULL){
+    open_file_t *open_file_fd = process.fd_table[fd_index];
+
+    if(open_file_fd == NULL){
         return -1;
     }
 
-    found_fd->ref_count++;
-
-    return add_file_descriptor_current_process(found_fd);
+    return open_file_fd->read(open_file_fd->resource);
 }
 
+open_file_t * get_stdin_fd(){
+    return open_file_t_stdin;
+}
 
-int fd_manager_close(uint64_t id){
-    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id);
+open_file_t * get_stdout_fd(){
+    return open_file_t_stdout;
+}
+
+open_file_t * fd_manager_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
+    open_file_t **fd_table = (open_file_t **)mem_alloc(sizeof(open_file_t *) * MAX_FD);
+
+    for(int i = 0; i < MAX_FD; i++){
+        fd_table[i] = NULL;
+    }
+
+    if(fd_count < 2){
+        fd_table[0] = get_stdin_fd();
+        fd_table[1] = get_stdout_fd();
+    } else {
+        if(fd_ids[0] == STDIN){
+            fd_table[0] = get_stdin_fd();
+        } else {
+            open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[0]);
+            
+            if(fd == NULL){
+                return NULL;
+            }
+
+            fd->ref_count++;
+            fd_table[0] = fd;
+        }
+        if(fd_ids[1] == STDOUT){
+            fd_table[1] = get_stdout_fd();
+        } else {
+            open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[1]);
+            
+            if(fd == NULL){
+                return NULL;
+            }
+
+            fd->ref_count++;
+            fd_table[1] = fd;
+        }
+    } 
+
+    for(int i = 2; i < fd_count; i++){
+        open_file_t *fd = fd_manager_open(fd_ids[i]);
+        if(fd == NULL){
+            return NULL;
+        }
+        fd_table[i] = fd;
+    }
+
+    return fd_table;
+}
+
+uint64_t fd_manager_open(uint64_t fd_id){
+    pcb_t process = get_current_process();
+
+    // Veo si existe el FD con el fd_id
+    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, fd_id);
+
+    if(found_fd == NULL){
+        return NULL;
+    }
+
+    //Chequeo si ya lo tenia abierto
+    for(int i = 0; i < MAX_FD; i++){
+        if(compare_file_descriptors_id(process.fd_table[i], fd_id) == 0){
+            return i;
+        }
+    }
+
+    //Si no se encontro el FD, lo agrego en el primer espacio libre
+    for(int i = 0; i < MAX_FD; i++){
+        if(process.fd_table[i] == NULL){
+            process.fd_table[i] = found_fd;
+            found_fd->ref_count++;
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int fd_manager_close(uint64_t fd_id){
+    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, fd_id);
     
     if(found_fd == NULL){
         return -1;
@@ -85,22 +161,20 @@ int fd_manager_close(uint64_t id){
     found_fd->ref_count--;
 
     if(found_fd->ref_count == 0){
-        remove_fd(id);
+        fd_remove(fd_id);
     }
-
-    remove_file_descriptor_current_process(found_fd);
 
     return 0;
 }
 
-void remove_fd(id){
+void fd_remove(uint64_t id){
     open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id);
     list_remove(open_file_descriptors_list, found_fd);
     mem_free(found_fd);
 }
 
-int add_fd(char (*read)(), char (*write)(char data), int (*close)()){
-    open_file_t *new_fd = create_fd(read, write, close);
+int fd_add(void *resource, char (*read)(), char (*write)(char data), int (*close)()){
+    open_file_t *new_fd = fd_create(resource, read, write, close);
 
     if(new_fd == -1){
         return -1;
@@ -110,14 +184,26 @@ int add_fd(char (*read)(), char (*write)(char data), int (*close)()){
     return 1;
 }
 
-open_file_t * create_fd(char (*read)(), char (*write)(char data), int (*close)()) {
+/**
+ * @brief Crea un nuevo descriptor de archivo.
+ *
+ * Esta función asigna memoria para un nuevo descriptor de archivo y lo inicializa
+ * con las funciones proporcionadas para leer, escribir y cerrar el archivo.
+ *
+ * @param read Puntero a la función de lectura.
+ * @param write Puntero a la función de escritura.
+ * @param close Puntero a la función de cierre.
+ * @return Puntero al nuevo descriptor de archivo, o NULL en caso de error.
+ */
+open_file_t * fd_create(void *resource, char (*read)(void *src), char (*write)(void *dest, char data), int (*close)()) {
     open_file_t * new_fd = (open_file_t *)mem_alloc(sizeof(open_file_t));
     
     if(new_fd == NULL){
-        return -1;
+        return NULL;
     }
 
-    new_fd->id = current_id++;
+    new_fd->id = current_fd_id++;
+    new_fd->resource = resource;
     new_fd->read = read;
     new_fd->write = write;
     new_fd->close = close;

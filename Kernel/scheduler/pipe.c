@@ -219,7 +219,7 @@ void pipes_test() {
 
     // Crear procesos de prueba: dos procesos de escritura y un proceso de lectura
     // Todos tienen prioridad 1 en este ejemplo, puedes ajustar según lo necesites
-    create_process(0, (program_t)pipe_writer1, 0, NULL); // Crea el proceso writer1
-    create_process(0, (program_t)pipe_writer2, 0, NULL); // Crea el proceso writer2
-    create_process(0, (program_t)pipe_reader, 0, NULL);  // Crea el proceso reader
+    create_process(0, (program_t)pipe_writer1, 0, NULL, NULL, 0); // Crea el proceso writer1
+    create_process(0, (program_t)pipe_writer2, 0, NULL, NULL, 0); // Crea el proceso writer2
+    create_process(0, (program_t)pipe_reader, 0, NULL, NULL, 0);  // Crea el proceso reader
 }

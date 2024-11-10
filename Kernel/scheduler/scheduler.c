@@ -3,6 +3,7 @@
 #include <pcb_queue.h>
 #include <utils.h>
 #include <file_descriptor.h>
+#include <open_file_t.h>
 
 uint64_t currentPID = 0;
 pcb_t current_process;
@@ -47,6 +48,11 @@ uint64_t schedule(void *running_process_rsp){
     } else if (current_process.state == READY){
         add_priority_queue(current_process);
     } else if (current_process.state == TERMINATED){
+        for(int i = 0; i < MAX_FD; i++){
+            if(current_process.fd_table[i] != NULL){
+                fd_manager_close(current_process.fd_table[i]->id);
+            }
+        }
         mem_free(current_process.rsp);
     } // else: VENGO DE UN HALT!
 
@@ -81,17 +87,17 @@ pcb_t get_next_process(){
     return next_process;
 }
 
-// Retorna -1 por error
-uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[]){
-    return create_process_state(priority, program, READY, argc, argv);
+pcb_t get_current_process(){
+    return current_process;
 }
 
 // Retorna -1 por error
-uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint8_t is_foreground, open_file_t *fds[MAX_FD], uint64_t fd_count){
-    if(is_foreground && fd_count < 3){
-        return -1;
-    }
-    
+uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
+    return create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
+}
+
+// Retorna -1 por error
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){    
     void *base_pointer = mem_alloc(STACK_SIZE);
     
     if(base_pointer == NULL){
@@ -99,19 +105,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
     }
 
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
-    
-    open_file_t *fd_table[MAX_FD] = {NULL};
-    uint8_t fd_idx = 0;
-
-    if(is_foreground){
-        fd_table[0] = get_stdin();
-        fd_table[1] = get_stdout();
-        fd_idx = 2;
-    }
-
-    for(;fd_idx < fd_count; fd_idx++){
-        fd_table[fd_idx] = fds[fd_idx];
-    }
+    open_file_t **fd_table = fd_manager_open_fd_table(fd_ids, fd_count);
 
     pcb_t new_process = {
                         currentPID++,       //pid
@@ -122,7 +116,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
                         state,              //state
                         fd_table
                         };
-    
+
     add_priority_queue(new_process);   
     return new_process.pid;
 }
@@ -326,37 +320,12 @@ uint64_t unblock_process(uint64_t pid){
     }
 }
 
-//Agrega un FD al proceso actual
-//@returns el indice del FD en la tabla de FD del proceso actual, -1 si no se pudo agregar
-int add_file_descriptor_current_process(uint64_t fd_id){
-    //TODO: ESTA MAL EL COMPARE!
-    for(int i = 0; i < MAX_FD; i++){
-        if(compare_file_descriptors(current_process.fd_table[i], fd) == 0){
-            return i;
-        }
-    }
-
-    for(int i = 0; i < MAX_FD; i++){
-        if(current_process.fd_table[i] == NULL){
-            current_process.fd_table[i] = fd;
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-//Elimina un FD de la tabla de FD del proceso actual
+//Elimina un FD de la tabla de FD del proceso actual, a partir del indice en la tabla
 //@returns 1 si se elimino correctamente, 0 si no se encontro
-int remove_file_descriptor_current_process(open_file_t *fd){
-    //TODO: ESTA MAL EL COMPARE!
-    for(int i = 0; i < MAX_FD; i++){
-        if(compare_file_descriptors(current_process.fd_table[i], fd) == 0){
-            current_process.fd_table[i] = NULL;
-            return 1;
-        }
-    }
-    return 0;
+int close_file_descriptor_current_process(uint64_t fd_index){
+    uint64_t fd_id = current_process.fd_table[fd_index]->id;
+    current_process.fd_table[fd_index] = NULL;
+    return fd_manager_close(fd_id);
 }
 
 void yield(){
