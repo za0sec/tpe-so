@@ -11,7 +11,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define SYS_CALLS_QTY 32
+#define SYS_CALLS_QTY 34
 
 extern uint8_t hasregisterInfo;
 extern const uint64_t registerInfo[17];
@@ -184,8 +184,8 @@ static void sched_yield() {
 
 /* Funciones de semáforos */
 
-static sem_t *sys_sem_open(char *sem_name, int init_value) {
-    sem_open(sem_name, init_value);
+static int sys_sem_open(char *sem_name, int init_value) {
+    return sem_open(sem_name, init_value);
 }
 
 static void sys_sem_close(sem_t *sem) {

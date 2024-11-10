@@ -16,14 +16,6 @@ q_adt p3 = NULL;
 q_adt all_blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
 q_adt blocked_read_queue = NULL;
 
-typedef struct {
-    uint64_t pid;
-    q_adt waiting_queue;
-} wait_entry;
-
-List *waiting_list = NULL;
-
-
 q_adt blocked_semaphore_queue = NULL;
 int current_semaphore = 0;
 uint8_t mutex_lock = 1;
@@ -56,21 +48,8 @@ uint64_t schedule(void *running_process_rsp){
         add_priority_queue(current_process);
     } else if (current_process.state == TERMINATED){
         mem_free(current_process.rsp);
-
-        if (waiting_list != NULL){
-            wait_entry key = {current_process.pid, NULL};
-            wait_entry *entry = (wait_entry *)list_get(waiting_list, &key);
-            if(entry != NULL){
-                pcb_t waiting_process;
-                while(has_next(entry->waiting_queue)){
-                    waiting_process = dequeue(entry->waiting_queue);
-                    waiting_process.state = READY;
-                    add_priority_queue(waiting_process);
-                }
-                list_remove(waiting_list, entry);
-                free_q(entry->waiting_queue);
-                mem_free(entry);
-            }
+        while(has_next(current_process.waiting_list)){
+            unblock_process_from_queue(current_process.waiting_list);
         }
     } // else: VENGO DE UN HALT!
 
@@ -100,7 +79,7 @@ pcb_t get_next_process(){
     } else if(has_next(p3)){
         next_process = dequeue(p3);
     } else {
-        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+        return return_null_pcb();
     }
     return next_process;
 }
@@ -119,6 +98,8 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
     }
 
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
+
+    q_adt waiting_list = new_q();
     
     pcb_t new_process = {
                         currentPID++,       //pid
@@ -126,7 +107,8 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
                         priority,           //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
-                        state               //state
+                        state,               //state
+                        waiting_list        //waiting_list
                         };
     
     add_priority_queue(new_process);   
@@ -152,7 +134,7 @@ pcb_t create_process_halt(){
     void *base_pointer = mem_alloc(STACK_SIZE);
     
     if(base_pointer == NULL){
-        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+        return return_null_pcb();
     }
 
     //TODO: que pongo en argc y argv?
@@ -177,7 +159,7 @@ void init_scheduler(){
     p2 = new_q();
     p3 = new_q();
     all_blocked_queue = new_q();
-    current_process = (pcb_t){0, 0, 0, 0, 0, TERMINATED};   // El primer proceso seria el kernel
+    current_process = return_null_pcb();
 }
 
 uint64_t get_pid(){
@@ -373,20 +355,9 @@ pcb_t find_dequeue_priority(uint64_t pid){
     process = find_dequeue_pid(p3, pid);
     if(process.pid > 0) return process;
 
-    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+    return return_null_pcb();
 }
 
-int compare_wait_entry(const void *a, const void *b){
-    const wait_entry *entry_a = (const wait_entry *)a;
-    const wait_entry *entry_b = (const wait_entry *)b;
-    if (entry_a->pid == entry_b->pid) {
-        return 0;
-    } else if (entry_a->pid < entry_b->pid) {
-        return -1;
-    } else {
-        return 1;
-    }
-}
 
 int find_process_in_priority_queues(uint64_t pid) {
     q_adt queues[] = {p0, p1, p2, p3};
@@ -435,29 +406,27 @@ int is_valid_pid(uint64_t pid){
     return 0;
 }
 
+pcb_t get_process_by_pid(uint64_t pid) {
+    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue, NULL};
+    pcb_t process;
+
+    for(int i = 0; queues[i] != NULL; i++) {
+        process = find_dequeue_pid(queues[i], pid);
+        if(process.pid > 0) {
+            add(queues[i], process);
+            return process;
+        }
+    }
+
+    return return_null_pcb();
+}
+
 
 void wait_pid(uint64_t pid) {
     if (!is_valid_pid(pid)) {
         // El PID esta mal o ya termino!!
         return;
     }
-    if (waiting_list == NULL){
-        waiting_list = list_init(compare_wait_entry);
-        if(waiting_list == NULL){
-            return;
-        }
-    }
-
-    wait_entry key = {pid, NULL};
-    wait_entry *entry = (wait_entry *)list_get(waiting_list, &key);
-    if(entry == NULL){
-        entry = (wait_entry *)mem_alloc(sizeof(wait_entry));
-        if(entry == NULL){
-            return;
-        }
-        entry->pid = pid;
-        entry->waiting_queue = new_q();
-        list_add(waiting_list, entry);
-    }
-    block_current_process_to_queue(entry->waiting_queue);
+    pcb_t process = get_process_by_pid(pid);
+    block_current_process_to_queue(process.waiting_list);
 }
