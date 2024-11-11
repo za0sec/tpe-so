@@ -167,8 +167,8 @@ static uint64_t sched_getPID() {
     return get_pid();
 }
 
-static void sched_list_processes(char *buf) {
-    list_processes(buf);
+static void sched_list_processes() {
+    list_processes();
 }
 
 static void sched_block_process(uint64_t pid) {

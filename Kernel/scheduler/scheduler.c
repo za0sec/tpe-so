@@ -2,6 +2,7 @@
 #include <memManager.h>
 #include <pcb_queue.h>
 #include <utils.h>
+#include <videoDriver.h>
 #include <file_descriptor.h>
 #include <open_file_t.h>
 #include <list.h>
@@ -21,6 +22,8 @@ q_adt blocked_read_queue = NULL;
 q_adt blocked_semaphore_queue = NULL;
 int current_semaphore = 0;
 uint8_t mutex_lock = 1;
+static char *get_st(int state);
+static void print_process(pcb_t process);
 
 uint64_t schedule(void *running_process_rsp){
     current_process.rsp = running_process_rsp;
@@ -183,70 +186,56 @@ uint64_t get_pid(){
     return current_process.pid;
 }
 
+void list_processes() {
+    vDriver_prints("\nPID  STATE     PRIORITY", WHITE, BLACK);
+    vDriver_prints("\n--------------------------\n", WHITE, BLACK);
 
-    // 8 char para el state, 3 para el pid, 1 para un espacio, 1 para el newline
-    // buf = mem_alloc(10 + (get_size(process_queue) + get_size(blocked_queue)) * 13);
-    // while(has_next(process_queue)){
-    //     pcb_t process = dequeue(process_queue);
-        
-    //     // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
-    // }
-    //  while(has_next(blocked_queue)){
-    //     pcb_t process = dequeue(process_queue);
-    //     // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
-    // }
+    if (current_process.pid != -1) {
+        print_process(current_process);
+    }
 
-
-
-// TODO: Terminar!
-void list_processes(char *buf){
-    // TODO: Cambiar el tamaño
-    // buf = mem_alloc();
-
-    // TODO: Header
-
-
-    // if(current_process.pid != -1){
-    //     add_proccess_to_buffer(current_process, buf);
-    // }
-
-    // pcb_t process;
-    // q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
-
-    // for(int i = 0; i < TOTAL_QUEUES; i++){
-    //     q_adt current = queues[i];
-    //     while(has_next(current)){
-    //         process = dequeue(current);
-    //         add_proccess_to_buffer(process, buf);
-    //         add(current, process);
-    //     }
-    // }
-
-    return;
+    pcb_t process;
+    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    for (int i = 0; i < TOTAL_QUEUES; i++) {
+        q_adt current = queues[i];
+        int size = get_size(current);
+        for (int j = 0; j < size; j++) {
+            process = dequeue(current);
+            print_process(process);
+            add(current, process);
+        }
+    }
 }
 
-// void add_proccess_to_buffer(pcb_t process, char *buf){
-//     char *state = get_state_string(process.state);
-//     //TODO:lenarlo
-// }
+static void print_process(pcb_t process) {
+    char *pid_str;
+    char *priority_str;
 
-// char *get_state_string(int state){
-//     char *state_string;
-//     switch(state){
-//         case READY:
-//             state_string = "READY";
-//             break;
-//         case RUNNING:
-//             state_string = "RUNNING";
-//             break;
-//         case BLOCKED:
-//             state_string = "BLOCKED";
-//             break;
-//         case TERMINATED:
-//             state_string = "TERMINATED";
-//             break;
-//     }
-// }
+    intToStr(process.pid, pid_str);
+    intToStr(process.priority, priority_str);
+
+    vDriver_prints(pid_str, WHITE, BLACK);
+    vDriver_prints(" ", WHITE, BLACK);
+    vDriver_prints(get_st(process.state), WHITE, BLACK);
+    vDriver_prints(" ", WHITE, BLACK);
+    vDriver_prints(priority_str, WHITE, BLACK);
+    vDriver_prints("\n", WHITE, BLACK);
+}
+
+static char *get_st(int state) {
+    switch (state) {
+        case READY:
+            return "READY";
+        case RUNNING:
+            return "RUNNING";
+        case BLOCKED:
+            return "BLOCKED";
+        case TERMINATED:
+            return "TERMINATED";
+        default:
+            return "HALT";
+    }
+}
 
 uint64_t kill_process(uint64_t pid){
     pcb_t process;

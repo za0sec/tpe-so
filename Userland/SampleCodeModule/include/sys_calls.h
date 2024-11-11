@@ -58,7 +58,7 @@ uint64_t sys_kill(uint64_t pid);
 
 uint64_t sys_getPID();
 
-uint64_t sys_list_processes(char *buffer);
+uint64_t sys_list_processes();
 
 uint64_t sys_block(uint64_t pid);
 
