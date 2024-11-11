@@ -79,11 +79,12 @@ int main(){
 	_cli();
 	load_idt();
 
-	init_file_descriptors();
+	// Orden muy delicado!
 	init_semaphores();
-	init_pipes();
+	init_pipes();					// Usa semaforos
+	init_file_descriptors();		// Usa pipes
+	init_keyboard();				// Usa FDs
 	init_scheduler();
-	init_keyboard();
 	create_process(0, sampleCodeModuleAddress, 0, NULL, NULL, 0);
 
 	_sti();

@@ -14,7 +14,7 @@ typedef struct {
     uint64_t id;                    // Identificador único del recurso
     void * resource;
     char (*read)(void *resource);
-    void (*write)(void *resource, char data);
+    int (*write)(void *resource, char data);
     int (*close)();                 // Puntero a la función de cierre específico del recurso
     uint32_t ref_count;             // Conteo de referencias para manejo de recursos compartidos
 } open_file_t;

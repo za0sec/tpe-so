@@ -201,8 +201,20 @@ static void sys_sem_post(sem_t *sem) {
     sem_post(sem);
 }
 
-static char sys_read_fd(uint64_t fd_index) {
-    return fd_read(fd_index);
+static char sys_read_fd(uint64_t process_fd_index) {
+    return fd_read_current_process(process_fd_index);
+}
+
+static char sys_write_fd(uint64_t process_fd_index, char data){
+    return fd_write_current_process(process_fd_index, data);
+}
+
+static uint64_t sys_open_fd(uint64_t fd_id){
+    return fd_open_current_process(fd_id);
+}
+
+static uint64_t sys_close_fd(uint64_t fd_index){
+    return fd_close_current_process(fd_index);
 }
 
 /* Arreglo de punteros a funciones (syscalls) */
@@ -242,7 +254,9 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sys_sem_wait,           // 30
     (void *)sys_sem_post,           // 31
     (void *)sys_read_fd,            // 32
-    
+    (void *)sys_write_fd,           // 33
+    (void *)sys_open_fd,             // 34
+    (void *)sys_close_fd             // 35
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

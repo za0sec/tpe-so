@@ -30,6 +30,10 @@ GLOBAL sys_sem_open
 GLOBAL sys_sem_wait
 GLOBAL sys_sem_post
 GLOBAL sys_sem_close
+GLOBAL sys_write_fd
+GLOBAL sys_read_fd
+GLOBAL sys_open_fd
+GLOBAL sys_close_fd
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9
@@ -202,5 +206,25 @@ sys_sem_wait:
 
 sys_sem_post:
     mov rax, 0x1F
+    int 80h
+    ret
+
+sys_read_fd:
+    mov rax, 0x20
+    int 80h
+    ret
+
+sys_write_fd:
+    mov rax, 0x21
+    int 80h
+    ret
+
+sys_open_fd:
+    mov rax, 0x22
+    int 80h
+    ret
+
+sys_close_fd:
+    mov rax, 0x23
     int 80h
     ret

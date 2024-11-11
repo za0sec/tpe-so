@@ -21,7 +21,7 @@ typedef struct pipe {
 int init_pipes();
 
 // Crea un pipe y devuelve su ID, o -1 si falla
-int pipe_create();
+uint64_t pipe_create();
 
 // Destruye el pipe especificado por `pipe_id` y libera sus recursos
 // Devuelve 1 si se eliminó exitosamente o 0 si no se encontró
@@ -31,8 +31,13 @@ void pipe_destroy(uint16_t pipe_id);
 // Devuelve el carácter leído o -1 si el pipe no existe o la lectura falla
 char pipe_read(uint16_t pipe_id);
 
-// Escribe un char `c` en el pipe especificado por `pipe_id`
-// Devuelve 0 si se escribió correctamente o -1 si el pipe no existe o la escritura falla
+/**
+ * Escribe un char al pipe.
+ *
+ * @param pipe_id El identificador del pipe al que se desea escribir.
+ * @param c El carácter que se desea escribir en el pipe.
+ * @return Retorna 1 si se escribió correctamente, 0 si el pipe no se pudo escribir o el pipe no existe.
+ */
 int pipe_write(uint16_t pipe_id, char c);
 
 // Función de comparación de pipes basada en `id`

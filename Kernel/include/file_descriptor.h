@@ -9,7 +9,27 @@
 #define STDOUT 1
 #define MAX_FD 10
 
-char fd_read(uint64_t fd_index);
+/**
+ * @brief Lee datos desde un descriptor de archivo del proceso actual.
+ *
+ * @param process_fd_index Índice del descriptor de archivo en la tabla de descriptores
+ *                         del proceso actual.
+ * @return El resultado de la operación de lectura. Si el descriptor de archivo no está
+ *         abierto, retorna -1.
+ */
+char fd_read_current_process(uint64_t process_fd_index);
+
+/**
+ * @brief Escribe un carácter en el archivo asociado al descriptor de archivo del proceso.
+ *
+ * Esta función toma un índice de descriptor de archivo de un proceso y un carácter,
+ * y escribe el carácter en el archivo asociado a ese descriptor de archivo.
+ *
+ * @param process_fd_index Índice del descriptor de archivo en la tabla de descriptores de archivo del proceso.
+ * @param data Carácter a escribir en el archivo.
+ * @return int Devuelve 1 si la escritura fue exitosa, 0 si no.
+ */
+int fd_write_current_process(uint64_t process_fd_index, char data);
 
 /**
  * @brief Inicializa el sistema de descriptores de archivos.
@@ -39,7 +59,7 @@ open_file_t *get_stdout_fd();
  * @param id El ID del descriptor de archivo a abrir.
  * @return Índice del FD en la tabla del proceso o -1 en caso de error.
  */
-uint64_t fd_manager_open(uint64_t fd_id);
+uint64_t fd_open_current_process(uint64_t fd_id);
 
 /**
  * @brief Cierra un descriptor de archivo basado en su ID.
@@ -48,11 +68,19 @@ uint64_t fd_manager_open(uint64_t fd_id);
  * elimina el descriptor de la lista global y libera su memoria.
  *
  * @param id El ID del descriptor de archivo a cerrar.
- * @return 0 en caso de éxito, -1 en caso de error.
+ * @return 1 en caso de éxito, -1 en caso de error.
  */
-int fd_manager_close(uint64_t id);
+int fd_close(uint64_t id);
 
-open_file_t * fd_manager_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count);
+/**
+ * @brief Elimina un FD de la tabla de FD del proceso actual, a partir del índice en la tabla.
+ *
+ * @param fd_index Índice del FD en la tabla de FD del proceso actual.
+ * @return int 1 si se eliminó correctamente, 0 si no se encontró el FD.
+ */
+int fd_close_current_process(uint64_t fd_index);
+
+open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count);
 
 /**
  * @brief Compara dos descriptores de archivo por sus IDs.
@@ -90,9 +118,9 @@ open_file_t * fd_create(void *resource, char (*read)(void *src), char (*write)(v
  * @param read Puntero a la función de lectura.
  * @param write Puntero a la función de escritura.
  * @param close Puntero a la función de cierre.
- * @return 1 en caso de éxito, -1 en caso de error.
+ * @return uint64_t ID del FD creado en caso de éxito, -1 en caso de error.
  */
-int fd_add(void *resource, char (*read)(), char (*write)(char data), int (*close)());
+uint64_t fd_add(void *resource, char (*read), char (*write)(char data), int (*close));
 
 /**
  * @brief Elimina un descriptor de archivo de la lista global.

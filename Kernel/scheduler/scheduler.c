@@ -50,7 +50,7 @@ uint64_t schedule(void *running_process_rsp){
     } else if (current_process.state == TERMINATED){
         for(int i = 0; i < MAX_FD; i++){
             if(current_process.fd_table[i] != NULL){
-                fd_manager_close(current_process.fd_table[i]->id);
+                fd_close(current_process.fd_table[i]->id);
             }
         }
         mem_free(current_process.rsp);
@@ -105,7 +105,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
     }
 
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
-    open_file_t **fd_table = fd_manager_open_fd_table(fd_ids, fd_count);
+    open_file_t **fd_table = fd_open_fd_table(fd_ids, fd_count);
 
     pcb_t new_process = {
                         currentPID++,       //pid
@@ -309,7 +309,6 @@ uint64_t unblock_process_from_queue(q_adt src){
     add_priority_queue(process);
 }
 
-// Desbloquea el proceso con el pid dado DE LA COLA ALL_BLOCKED, y lo agrega a la cola de procesos listos
 uint64_t unblock_process(uint64_t pid){
     pcb_t process;
     if( (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0){
@@ -318,14 +317,6 @@ uint64_t unblock_process(uint64_t pid){
     } else {
         return -1;
     }
-}
-
-//Elimina un FD de la tabla de FD del proceso actual, a partir del indice en la tabla
-//@returns 1 si se elimino correctamente, 0 si no se encontro
-int close_file_descriptor_current_process(uint64_t fd_index){
-    uint64_t fd_id = current_process.fd_table[fd_index]->id;
-    current_process.fd_table[fd_index] = NULL;
-    return fd_manager_close(fd_id);
 }
 
 void yield(){
