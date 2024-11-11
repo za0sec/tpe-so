@@ -20,6 +20,8 @@ GLOBAL sys_mem_alloc
 GLOBAL sys_mem_free
 GLOBAL sys_mem_init
 GLOBAL sys_create_process
+GLOBAL sys_create_process_set_fd
+GLOBAL sys_create_process_foreground
 GLOBAL sys_kill
 GLOBAL sys_getPID
 GLOBAL sys_list_processes
@@ -232,5 +234,16 @@ sys_open_fd:
 
 sys_close_fd:
     mov rax, 0x24
+    int 80h
+    ret
+
+sys_create_process_foreground:
+    mov rax, 0x25
+    mov r10, rcx        ;4to parametro de syscall es R10
+    int 80h
+    ret
+
+sys_create_process_set_fd:
+    mov rax, 0x26
     int 80h
     ret

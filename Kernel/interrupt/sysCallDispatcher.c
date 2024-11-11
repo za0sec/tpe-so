@@ -11,7 +11,6 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define SYS_CALLS_QTY 34
 
 extern uint8_t hasregisterInfo;
 extern const uint64_t registerInfo[17];
@@ -155,8 +154,8 @@ static void sys_mem_init(void *ptr, int s) {
 /* Funciones del scheduler */
 
 // Si le pasas fd_count < 2, se le asignan los fd de stdin y stdout!
-static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[], uint64_t fd_count) {
-    return create_process(priority, program, argc, argv, fd_ids, fd_count);
+static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
+    return userspace_create_process(priority, program, argc, argv);
 }
 
 static void sched_kill_process(uint64_t pid) {
@@ -221,8 +220,12 @@ static uint64_t sys_close_fd(uint64_t fd_index){
     return fd_close_current_process(fd_index);
 }
 
-static uint64_t sched_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[], uint64_t fd_count){
-    return create_process_foreground(priority, program, argc, argv, fd_ids, fd_count);
+static uint64_t sched_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]){
+    return userspace_create_process_foreground(priority, program, argc, argv);
+}
+
+static void sched_create_process_set_fd(uint64_t *fd_ids, uint64_t fd_count){
+    return userspace_set_fd(fd_ids, fd_count);
 }
 
 /* Arreglo de punteros a funciones (syscalls) */
@@ -261,15 +264,17 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sys_sem_close,          // 29
     (void *)sys_sem_wait,           // 30
     (void *)sys_sem_post,           // 31
-    (void *)sys_wait_pid,            // 32
-    (void *)sys_read_fd,            // 32
-    (void *)sys_write_fd,           // 33
-    (void *)sys_open_fd,             // 34
-    (void *)sys_close_fd             // 35
+    (void *)sys_wait_pid,           // 32
+    (void *)sys_read_fd,            // 33
+    (void *)sys_write_fd,           // 34
+    (void *)sys_open_fd,            // 35
+    (void *)sys_close_fd,           // 36
+    (void *)sched_create_process_foreground, // 37
+    (void *)sched_create_process_set_fd     // 38
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {
-    if (rax < SYS_CALLS_QTY && syscalls[rax] != 0){
+    if (syscalls[rax] != 0){
         return syscalls[rax](rdi, rsi, rdx, r10, r8);
     }
 

@@ -52,7 +52,11 @@ void sys_mem_free(void * ptr);
 
 void * sys_mem_init(int s);
 
-uint64_t sys_create_process(int priority,program_t program, uint64_t argc, char *argv[]);
+void sys_create_process_set_fd(uint64_t *fd_ids, int fd_count);
+
+uint64_t sys_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
+
+uint64_t sys_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]);
 
 uint64_t sys_kill(uint64_t pid);
 
