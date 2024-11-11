@@ -44,7 +44,7 @@ int add_sem(char *sem_name, int initialValue);
 void remove_sem(char *sem_name);
 
 // Crea un nuevo semáforo e inicializa su valor si no existía previamente
-void sem_open(char *sem_name, uint64_t initialValue);
+int sem_open(char *sem_name, uint64_t initialValue);
 
 // Cierra un semáforo, reduciendo el contador de procesos que lo usan; si es 0, elimina el semáforo
 void sem_close(char *sem_name);

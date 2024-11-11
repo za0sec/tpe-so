@@ -56,15 +56,15 @@ void remove_sem(char * sem_name){
 }
 
 // Crea un nuevo semaforo y lo incializa en el valor especificado, si no existia
-void sem_open(char *sem_name, uint64_t initialValue){
+int sem_open(char *sem_name, uint64_t initialValue){
     sem_t *aux = (sem_t *)list_get(sem_list, sem_name);
     if(aux == NULL){
-        aux = add_sem(sem_name, initialValue);
+        return add_sem(sem_name, initialValue);
     } else {
         (aux->count_processes)++;
     }
 
-    return;
+    return 0;
 }
 
 void sem_close(char * sem_name){

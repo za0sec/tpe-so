@@ -66,7 +66,7 @@ uint64_t sys_unblock(uint64_t pid);
 
 uint64_t sys_yield();
 
-uint64_t sys_sem_open(char* sem_name, int init_value);
+int sys_sem_open(char* sem_name, int init_value);
 
 uint64_t sys_sem_close(void *sem);
 
@@ -74,5 +74,14 @@ uint64_t sys_sem_wait(void *sem);
 
 uint64_t sys_sem_post(void *sem);
 
+void sys_wait_pid(uint64_t pid);
+
+uint64_t sys_read_fd(uint64_t process_fd_index);
+
+uint64_t sys_write_fd(uint64_t process_fd_index, char data);
+
+uint64_t sys_open_fd(uint64_t fd_id);
+
+uint64_t sys_close_fd(uint64_t fd_index);
 
 #endif

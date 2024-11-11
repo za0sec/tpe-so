@@ -4,9 +4,7 @@
 #include <stdint.h>
 #include <memManager.h>
 #include <pipe.h>
-
-//tengo que guardar los pipes que existen de alguna manera -> les pongo un id y los guardo en una lista
-//ademas mas tarde los pipes van a tener q estar asociados a FD -> guardo el id del pipe en el FD
+#include <file_descriptor.h>
 
 uint16_t current_id = 0;
 List *pipe_list;
@@ -19,14 +17,24 @@ int init_pipes(){
     return 0;
 }
 
-// Retorna el id del pipe creado, o -1 si falla
-int pipe_create(){
+// Retorna el FD del pipe creado, o -1 si falla
+uint64_t pipe_create(){
     pipe *new_pipe = pipe_init();
+    
     if(new_pipe == NULL){
         return -1;
     }
+
+    uint64_t pipe_fd_id = fd_add(new_pipe->id, pipe_read, pipe_write, pipe_destroy);
+
+    if(pipe_fd_id == -1){
+        pipe_free(new_pipe);
+        return -1;
+    }
+
     list_add(pipe_list, new_pipe);
-    return new_pipe->id;
+
+    return pipe_fd_id;
 }
 
 // Destruye el pipe especificado por `pipe_id` y libera sus recursos
@@ -61,18 +69,11 @@ char pipe_read(uint16_t pipe_id){
     return c;
 }
 
-/**
- * Escribe un char al pipe.
- *
- * @param pipe_id El identificador del pipe al que se desea escribir.
- * @param c El carácter que se desea escribir en el pipe.
- * @return Retorna 0 si se escribió correctamente, -1 si el pipe no se pudo escribir o el pipe no existe.
- */
 int pipe_write(uint16_t pipe_id, char c){
     pipe target_pipe = {.id = pipe_id};
     pipe *found_pipe = (pipe *)list_get(pipe_list, &target_pipe);
     if(found_pipe == NULL){
-        return -1;
+        return 0;
     }
 
     sem_wait(found_pipe->sem_name_mutex);
@@ -83,7 +84,7 @@ int pipe_write(uint16_t pipe_id, char c){
     sem_post(found_pipe->sem_name_mutex);
     sem_post(found_pipe->sem_name_data_available);
 
-    return 0;
+    return 1;
 }
 
 // Compare: compara los id`s de dos pipe
@@ -219,7 +220,7 @@ void pipes_test() {
 
     // Crear procesos de prueba: dos procesos de escritura y un proceso de lectura
     // Todos tienen prioridad 1 en este ejemplo, puedes ajustar según lo necesites
-    create_process(0, (program_t)pipe_writer1, 0, NULL); // Crea el proceso writer1
-    create_process(0, (program_t)pipe_writer2, 0, NULL); // Crea el proceso writer2
-    create_process(0, (program_t)pipe_reader, 0, NULL);  // Crea el proceso reader
+    create_process(0, (program_t)pipe_writer1, 0, NULL, NULL, 0); // Crea el proceso writer1
+    create_process(0, (program_t)pipe_writer2, 0, NULL, NULL, 0); // Crea el proceso writer2
+    create_process(0, (program_t)pipe_reader, 0, NULL, NULL, 0);  // Crea el proceso reader
 }

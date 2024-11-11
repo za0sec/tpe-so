@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <keyboard.h>
 #include <pipe.h>
+#include <file_descriptor.h>
 
-int keyboard_pipe_id;
+open_file_t *open_file_t_keyboard;
 
 static const char keyMapL[] = {
     0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
@@ -58,7 +59,7 @@ static const char *const keyMap[] = {keyMapL, keyMapU};
  */
 
 void init_keyboard(){
-    keyboard_pipe_id = pipe_create();
+    open_file_t_keyboard = get_stdin_fd();
 }
 
 // Keyboard handler: consigue el scancode del keyboard y escribe al pipe del teclado el ascii code
@@ -98,9 +99,9 @@ void keyboard_handler(uint8_t keyPressed){
         ascii_code = keyMap[shift][input_code];
     }
 
-    pipe_write(keyboard_pipe_id, ascii_code);
+    open_file_t_keyboard->write(open_file_t_keyboard->resource, ascii_code);
 }
 
 char read_keyboard(){
-    return pipe_read(keyboard_pipe_id);
+    return open_file_t_keyboard->read(open_file_t_keyboard->resource);
 }   

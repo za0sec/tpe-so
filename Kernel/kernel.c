@@ -11,6 +11,7 @@
 #include <scheduler.h>
 #include <memManager.h>
 #include <pipe.h>
+#include <file_descriptor.h>
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -78,11 +79,13 @@ int main(){
 	_cli();
 	load_idt();
 
+	// Orden muy delicado!
 	init_semaphores();
-	init_pipes();
+	init_pipes();					// Usa semaforos
+	init_file_descriptors();		// Usa pipes
+	init_keyboard();				// Usa FDs
 	init_scheduler();
-	init_keyboard();
-	create_process(0, sampleCodeModuleAddress, 0, NULL);
+	create_process(0, sampleCodeModuleAddress, 0, NULL, NULL, 0);
 
 	_sti();
 	
