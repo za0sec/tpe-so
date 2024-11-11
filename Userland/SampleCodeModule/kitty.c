@@ -311,15 +311,33 @@ void cmd_eliminator()
 	}
 }
 
-void historyCaller(int direction)
-{
-	cmd_clear();
-	printPrompt();
-	commandIterator += direction;
-	prints(commandHistory[commandIterator], MAX_BUFF);
-	strcpy(line, commandHistory[commandIterator]);
-	linePos = strlen(commandHistory[commandIterator]);
+void historyCaller(int direction){
+
+    for (int i = 0; i < linePos; i++){
+        printc('\b');
+    }
+    for (int i = 0; i < linePos; i++){
+        printc(' '); 
+    }
+    for (int i = 0; i < linePos; i++){
+        printc('\b');
+    }
+
+    commandIterator += direction;
+
+    if (commandIterator < 0){
+        commandIterator = 0;
+    } else if (commandIterator >= commandIdxMax){
+        commandIterator = commandIdxMax - 1;
+    }
+
+    strcpy(line, commandHistory[commandIterator]);
+    linePos = strlen(commandHistory[commandIterator]);
+
+    prints(commandHistory[commandIterator], MAX_BUFF);
 }
+
+
 
 void cmd_ascii()
 {

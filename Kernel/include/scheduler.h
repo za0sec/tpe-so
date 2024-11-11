@@ -35,9 +35,9 @@ uint64_t block_process_to_queue(uint64_t pid, q_adt dest);
 uint64_t unblock_process_from_queue(q_adt src);
 uint64_t unblock_process(uint64_t pid);
 uint64_t get_pid();
-int add_file_descriptor_current_process(open_file_t *fd);
-int remove_file_descriptor_current_process(open_file_t *fd);
 pcb_t get_current_process();
+int remove_file_descriptor_current_process(open_file_t *fd);
+void wait_pid(uint64_t pid);
 void list_processes(char *buf);
 void yield();
 

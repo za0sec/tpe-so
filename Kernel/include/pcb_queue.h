@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <open_file_t.h>
 #include <file_descriptor.h>
+#include <list.h>
+
+// Estructura para manejar la cola
+typedef struct q_cdt * q_adt;
 
 typedef struct pcb {
     int pid;
@@ -20,11 +24,10 @@ typedef struct pcb {
         TERMINATED,
         HALT
     } state;
-    open_file_t *fd_table[MAX_FD];
+    open_file_t **fd_table;
+    q_adt waiting_list;
 } pcb_t;
 
-// Estructura para manejar la cola
-typedef struct q_cdt * q_adt;
 
 size_t get_size(q_adt q);
 
@@ -70,5 +73,7 @@ pcb_t dequeue(q_adt q);
  * @param q La cola a liberar
  */
 void free_q(q_adt q);
+
+pcb_t return_null_pcb();
 
 #endif // __queue

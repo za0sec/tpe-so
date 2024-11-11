@@ -163,6 +163,10 @@ uint64_t fd_open_current_process(uint64_t fd_id){
 }
 
 int fd_close(uint64_t fd_id){
+    if(fd_id < 2){
+        return 0;
+    }
+
     open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, fd_id);
     
     if(found_fd == NULL){
