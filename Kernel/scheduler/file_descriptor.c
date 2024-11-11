@@ -6,6 +6,7 @@
 #include <pcb_queue.h>
 #include <open_file_t.h>
 #include <file_descriptor.h>
+#include <videoDriver.h>
 
 List *open_file_descriptors_list;
 uint64_t current_fd_id = 0;
@@ -39,7 +40,7 @@ void init_file_descriptors(){
     uint64_t stdin_fd_id = pipe_create();
     open_file_t_stdin = (open_file_t *)list_get(open_file_descriptors_list, stdin_fd_id);
 
-    // open_file_t_stdout = TODO: fd_create(write_screen, NULL, NULL);
+    open_file_t_stdout = fd_create(0, vDriverRead, vDriverWrite, vDriverClose);
 }
 
 char fd_read_current_process(uint64_t process_fd_index){
@@ -81,7 +82,7 @@ open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
         fd_table[i] = NULL;
     }
 
-    if(fd_count < 2){
+    if(fd_ids == NULL || fd_count < 2){
         fd_table[0] = get_stdin_fd();
         fd_table[1] = get_stdout_fd();
     } else {
@@ -201,7 +202,7 @@ void fd_remove(uint64_t id){
     mem_free(found_fd);
 }
 
-uint64_t fd_add(void *resource, char (*read), char (*write)(char data), int (*close)){
+uint64_t fd_add(void *resource, char (*read), int (*write)(char data), int (*close)){
     open_file_t *new_fd = fd_create(resource, read, write, close);
 
     if(new_fd == NULL){
@@ -212,7 +213,7 @@ uint64_t fd_add(void *resource, char (*read), char (*write)(char data), int (*cl
     return new_fd->id;
 }
 
-open_file_t * fd_create(void *resource, char (*read)(void *src), char (*write)(void *dest, char data), int (*close)()) {
+open_file_t * fd_create(void *resource, char (*read)(void *src), int (*write)(void *dest, char data), int (*close)()) {
     open_file_t * new_fd = (open_file_t *)mem_alloc(sizeof(open_file_t));
     
     if(new_fd == NULL){

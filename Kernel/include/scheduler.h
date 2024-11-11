@@ -25,11 +25,17 @@ pcb_t get_next_process();
 void initProcessWrapper(program_t program, uint64_t argc, char **argv);
 
 // Process management
+void userspace_set_fd(uint64_t *fd_ids, int fd_count);
+uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]);
+uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
+uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count);
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
 pcb_t create_process_halt();
 uint64_t kill_process(uint64_t pid);
+uint64_t kill_process_foreground();
 uint64_t block_process();
+void block_process_pid(uint64_t pid);
 uint64_t block_current_process_to_queue(q_adt blocked_queue);
 uint64_t block_process_to_queue(uint64_t pid, q_adt dest);
 uint64_t unblock_process_from_queue(q_adt src);

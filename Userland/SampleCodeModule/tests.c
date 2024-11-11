@@ -107,7 +107,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
       // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
-      p_rqs[rq].pid = sys_create_process(0, &endless_loop, 0, argvAux);
+      p_rqs[rq].pid = create_process(0, &endless_loop, 0, argvAux, 0, 0);
 
       if (p_rqs[rq].pid == -1) {
         prints("test_processes: ERROR creating process\n", MAX_BUFF);
@@ -211,7 +211,7 @@ int64_t test_scheduler_processes() {
     for (rq = 0; rq < max_processes; rq++) {
       // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
       char *argv[] = {rq};
-      p_rqs[rq].pid = sys_create_process(0, &test_process, 0, argv);
+      p_rqs[rq].pid = create_process(0, &test_process, 0, argv, 0, 0);
 
       if (p_rqs[rq].pid == -1) {
         prints("ERROR creating process\n", MAX_BUFF);
@@ -234,7 +234,7 @@ void test_prio() {
   uint64_t i;
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    pids[i] = sys_create_process(0, &endless_loop, 0, argv);
+    pids[i] = create_process(0, &endless_loop, 0, argv, 0, 0);
 
   bussy_wait(WAIT);
   prints("\nCHANGING PRIORITIES...\n", MAX_BUFF);
@@ -349,16 +349,16 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
     if (use_sem)
       sys_sem_wait(SEM_ID);
     slowInc(&global, inc);
-    prints("Process: ", strlen("Process: "));
+    write_string("Process: ", strlen("Process: "));
     printDec(sys_getPID());
-    prints(" Global: ", strlen(" Global: "));
+    write_string(" Global: ", strlen(" Global: "));
     if(global < 0){
-      prints("-", strlen("-"));
+      write_string("-", strlen("-"));
       printDec(-global);
     } else {
       printDec(global);
     }
-    prints("\n", strlen("\n"));
+    write_string("\n", strlen("\n"));
     if (use_sem)
       sys_sem_post(SEM_ID);
   }
@@ -373,6 +373,9 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
 uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
 
+  // char *argvpina[] = {"5", "-1", "1", NULL};
+  // create_process(0, &my_process_inc, 3, mem_alloc_args(argvpina), 27, 8);
+
   if (argc != 2) {
       return -1;
   }
@@ -386,8 +389,8 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
 
   uint64_t i;
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
-    pids[i] = sys_create_process(0, &my_process_inc, 3, mem_alloc_args(argvDec));
-    pids[i + TOTAL_PAIR_PROCESSES] = sys_create_process(0, &my_process_inc, 3, mem_alloc_args(argvInc));
+    pids[i] = create_process(0, &my_process_inc, 3, mem_alloc_args(argvDec), NULL, 0);
+    pids[i + TOTAL_PAIR_PROCESSES] = create_process(0, &my_process_inc, 3, mem_alloc_args(argvInc), NULL, 0);
   }
 
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
@@ -408,3 +411,10 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
 
   return 0;
 }
+
+void loop_test() {
+  while (1) {
+    if (sys_getSeconds() % 1 == 0) write_string("hola", strlen("hola"));
+  }
+}
+

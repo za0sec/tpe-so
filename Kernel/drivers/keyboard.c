@@ -2,8 +2,15 @@
 #include <keyboard.h>
 #include <pipe.h>
 #include <file_descriptor.h>
+#include <videoDriver.h>
 
 open_file_t *open_file_t_keyboard;
+
+unsigned char input_code = 0;
+char ascii_code = 0;
+int shift = 0;
+int ctrl = 0;
+int caps_lock = 0;
 
 static const char keyMapL[] = {
     0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
@@ -63,40 +70,57 @@ void init_keyboard(){
 }
 
 // Keyboard handler: consigue el scancode del keyboard y escribe al pipe del teclado el ascii code
-void keyboard_handler(uint8_t keyPressed){
-    unsigned char input_code = 0;
-    char ascii_code = 0;
-    int shift = 0;
-    int caps_lock = 0;
+void keyboard_handler(uint8_t keyPressed) {
+
     input_code = keyPressed;
 
     // shift pressed
-    if (input_code == 0x2A || input_code == 0x36)
-    {
+    if (input_code == 0x2A || input_code == 0x36) {
         shift = 1;
     }
+
     // shift not pressed
-    if (input_code == 0xAA || input_code == 0xB6)
-    {
+    if (input_code == 0xAA || input_code == 0xB6) {
         shift = 0;
     }
+
     // caps_lock
-    if (input_code == 0x3A)
-    {
+    if (input_code == 0x3A) {
         caps_lock = (caps_lock + 1) % 2;
     }
 
-    if (input_code > 0x80 || input_code == 0x0F)
-    {
+    //ctrl pressed
+    if(input_code == 0x1D) {
+        ctrl = 1;
+    }
+
+    //ctrl released
+    if(input_code == 0x9D) {
+        ctrl = 0;
+    }
+
+    if (input_code > 0x80 || input_code == 0x0F) {
         ascii_code = 0;
     }
-    else if (input_code == 0x48 || input_code == 0x50)
-    {
+    else if (input_code == 0x48 || input_code == 0x50) {
         ascii_code = input_code;
     }
-    else
-    {
+    else {
         ascii_code = keyMap[shift][input_code];
+    }
+
+    if (ctrl && input_code == 0x20) { // 0x20 = 32 = 'd'
+        ascii_code = -1;
+    }
+
+    if (ctrl && input_code == 0x2E) { // 0x2E = 46 = 'c'
+        ascii_code = 0;
+        uint64_t pid = kill_process_foreground();
+        vDriver_prints("KILLED PROCESS: ", BLACK, WHITE);
+        char buffer[10];
+        intToStr(pid, buffer);
+        vDriver_prints(buffer, BLACK, WHITE);
+        vDriver_prints("\n\n", BLACK, WHITE);
     }
 
     open_file_t_keyboard->write(open_file_t_keyboard->resource, ascii_code);

@@ -52,7 +52,11 @@ void sys_mem_free(void * ptr);
 
 void * sys_mem_init(int s);
 
-uint64_t sys_create_process(int priority,program_t program, uint64_t argc, char *argv[]);
+void sys_create_process_set_fd(uint64_t *fd_ids, int fd_count);
+
+uint64_t sys_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
+
+uint64_t sys_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]);
 
 uint64_t sys_kill(uint64_t pid);
 
@@ -83,5 +87,7 @@ uint64_t sys_write_fd(uint64_t process_fd_index, char data);
 uint64_t sys_open_fd(uint64_t fd_id);
 
 uint64_t sys_close_fd(uint64_t fd_index);
+
+static uint64_t sys_pipe_create();
 
 #endif

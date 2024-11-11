@@ -18,7 +18,7 @@ static char username[USERNAME_SIZE] = "user";
 static char commandHistory[MAX_COMMAND][MAX_BUFF] = {0};
 static int commandIterator = 0;
 static int commandIdxMax = 0;
-
+uint64_t cursor_pid;
 
 char usernameLength = 4;
 
@@ -49,24 +49,28 @@ void printHelp()
 	printsColor("\n    >testschedulerprocesses - test scheduler processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >testsync           - test sync processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop};
 
 void kitty()
 {
 	welcome();
 	char c;
 	printPrompt();
+	cursor_pid = sys_create_process(0, &drawCursor, 0, NULL);
 	while (1 && !terminate)
 	{
-		drawCursor();
 		c = getChar();
+		sys_block(cursor_pid);
 		printLine(c, strcmp(username, "user"));
+		sys_unblock(cursor_pid);
 	}
 }
 
@@ -120,6 +124,11 @@ void printPrompt()
 	prints(username, usernameLength);
 	prints(" $", MAX_BUFF);
 	printcColor('>', PINK);
+}
+
+void cmd_loop(){
+	int pid = sys_create_process_foreground(0, &loop_test, 0, NULL);
+	sys_wait_pid(pid);
 }
 
 // separa comando de parametro
@@ -186,10 +195,14 @@ void cmd_memtest()
 	}
 }
 
+void cmd_cat(){
+	prints(parameter, MAX_BUFF);
+}
+
 void cmd_schetest()
 {
     char *argv[] = {"3"};
-	sys_create_process(1, &test_processes, 1, argv);
+	create_process(1, &test_processes, 1, argv, 0, 0);
 }
 
 void cmd_priotest(){
@@ -367,7 +380,8 @@ void cmd_testschedulerprocesses()
 
 void cmd_test_sync() {
     char *argv[] = {"5", "1", 0};
-	sys_create_process(0, &test_sync, 2, argv);
+	uint64_t pid = create_process_foreground(0, &test_sync, 2, argv, 0, 0);	//Le paso 0 como fd_ids y fd_count, le pone stdin y stdout
+	sys_wait_pid(pid);
 	printsColor("CREATED 'test_sync' PROCESS!\n", MAX_BUFF, RED);
 }
 
@@ -394,7 +408,6 @@ void welcome()
 	prints("\nPlease enter your username: ", MAX_BUFF);
 	while (!strcmp(username, "user"))
 	{
-		drawCursor();
 		c = getChar();
 		printLine(c, strcmp(username, "user"));
 	}
