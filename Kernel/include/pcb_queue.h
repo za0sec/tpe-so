@@ -13,6 +13,7 @@ typedef struct q_cdt * q_adt;
 
 typedef struct pcb {
     int pid;
+    void *base_sp;
     void *rsp;
     uint8_t priority;
     uint8_t assigned_quantum;

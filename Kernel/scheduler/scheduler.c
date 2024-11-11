@@ -18,12 +18,21 @@ q_adt p3 = NULL;
 
 q_adt all_blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
 q_adt blocked_read_queue = NULL;
-
 q_adt blocked_semaphore_queue = NULL;
+
 int current_semaphore = 0;
 uint8_t mutex_lock = 1;
-static char *get_st(int state);
-static void print_process(pcb_t process);
+
+void init_scheduler(){
+    current_semaphore = 0;
+    p0 = new_q();
+    p1 = new_q();
+    p2 = new_q();
+    p3 = new_q();
+    all_blocked_queue = new_q();
+    current_process = return_null_pcb();
+    halt_process = create_process_halt();
+}
 
 uint64_t schedule(void *running_process_rsp){
     
@@ -61,6 +70,10 @@ uint64_t schedule(void *running_process_rsp){
             add_priority_queue(current_process);
             break;
 
+        case HALT:
+            halt_process.rsp = running_process_rsp;
+            break;
+
         case TERMINATED:
             if(current_process.fd_table != NULL){
                 for(int i = 0; i < MAX_FD; i++){
@@ -70,7 +83,7 @@ uint64_t schedule(void *running_process_rsp){
                 }
             }
             
-            mem_free(current_process.rsp);   
+            mem_free(current_process.base_sp);   
     
             while(has_next(current_process.waiting_list)){
                 unblock_process_from_queue(current_process.waiting_list);
@@ -85,16 +98,10 @@ uint64_t schedule(void *running_process_rsp){
     pcb_t next_process = get_next_process();
     
     if(next_process.state == READY){
-        if(current_process.state == HALT){
-            mem_free(current_process.rsp);          // Free stack del proceso halt 
-        }
         current_process = next_process;
         current_process.state = RUNNING;
     } else {
-        if(current_process.state == HALT){
-            return current_process.rsp;
-        }
-        current_process = create_process_halt();
+        current_process = halt_process;
     }
 
     return current_process.rsp;
@@ -141,6 +148,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
 
     pcb_t new_process = {
                         currentPID++,       //pid
+                        base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         priority,           //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
@@ -181,25 +189,17 @@ pcb_t create_process_halt(){
     
     pcb_t new_process = {
                         currentPID++,       //pid
+                        base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         0,                  //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         HALT,               //state
-                        NULL
+                        NULL,               //fd_table
+                        NULL                //waiting_list
                         };
       
     return new_process;
-}
-
-void init_scheduler(){
-    current_semaphore = 0;
-    p0 = new_q();
-    p1 = new_q();
-    p2 = new_q();
-    p3 = new_q();
-    all_blocked_queue = new_q();
-    current_process = return_null_pcb();
 }
 
 uint64_t get_pid(){
@@ -308,7 +308,7 @@ uint64_t kill_process(uint64_t pid){
     if(current_process.pid == pid){
         current_process.state = TERMINATED;
     } else if( (process = find_dequeue_priority(pid)).pid > 0 || (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
-        mem_free(process.rsp);
+        mem_free(process.base_sp);
     } else {
         return -1;
     }
