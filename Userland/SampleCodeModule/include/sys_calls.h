@@ -90,4 +90,6 @@ uint64_t sys_close_fd(uint64_t fd_index);
 
 static uint64_t sys_pipe_create();
 
+static void sys_nice(uint64_t pid, uint8_t priority);
+
 #endif

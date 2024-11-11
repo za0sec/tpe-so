@@ -14,6 +14,8 @@ pcb_t halt_process;
 uint64_t userspace_process_creation_fd_ids[MAX_FD] = {0, 1};
 uint64_t userspace_process_creation_fd_count = 0;
 
+uint64_t aging_counter = 0;
+
 q_adt p0 = NULL;
 q_adt p1 = NULL;
 q_adt p2 = NULL;
@@ -38,9 +40,13 @@ void init_scheduler(){
 }
 
 uint64_t schedule(void *running_process_rsp){
-    
     current_process.rsp = running_process_rsp;
-    
+
+    if(++aging_counter >= AGING_THRESHOLD){
+        aging_counter = 0;
+        apply_aging();
+    }
+
     switch(current_process.state){
         case RUNNING:
             current_process.used_quantum++;
@@ -134,6 +140,18 @@ pcb_t get_current_process(){
     return current_process;
 }
 
+void apply_aging(){
+    q_adt queues[] = {p0, p1, p2, p3};
+    pcb_t process;
+    for (int i = 1; i <= HIGHEST_QUEUE; i++) {
+        while (has_next(queues[i])) {
+            process = dequeue(queues[i]);
+            process.priority = i - 1;
+            add_priority_queue(process);
+        }
+    }
+}
+
 uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]){
     foreground_pid = create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count);
     return foreground_pid;
@@ -221,7 +239,6 @@ pcb_t create_process_halt(){
         return return_null_pcb();
     }
 
-    //TODO: que pongo en argc y argv?
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, &halt, 0, NULL);
 
     pcb_t new_process = {
@@ -247,9 +264,24 @@ uint64_t kill_process_foreground(){
     if(foreground_pid < 0){
         return -1;
     }
-    uint64_t pid = kill_process(foreground_pid);
+    kill_process(foreground_pid);
+    uint64_t aux = foreground_pid;
     foreground_pid = -1;
-    return pid;
+    return aux;
+}
+
+uint64_t set_priority(uint64_t pid, uint8_t priority){
+    priority = priority % HIGHEST_QUEUE;
+    pcb_t process;
+    if(current_process.pid == pid){
+        current_process.priority = priority;
+        current_process.assigned_quantum = ASSIGN_QUANTUM(priority);
+    } else if( (process = find_dequeue_priority(pid)).pid > 0 ){
+        process.priority = priority;
+        add_priority_queue(process);
+    } else {
+        return -1;
+    }
 }
 
 uint64_t kill_process(uint64_t pid){
