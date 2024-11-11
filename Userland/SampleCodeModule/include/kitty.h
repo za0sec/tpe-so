@@ -41,6 +41,7 @@ void cmd_priotest();
 void cmd_testschedulerprocesses();
 void cmd_test_sync();
 void cmd_ps();
+void cmd_cat();
 
 
 #endif

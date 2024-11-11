@@ -58,7 +58,9 @@ void printcColor(char c, Color color)
 
 void drawCursor()
 {
-	sys_drawCursor();
+	while (1){
+		sys_drawCursor();
+	}
 }
 
 void prints(const char *str, int lenght)
