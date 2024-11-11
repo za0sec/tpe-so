@@ -1,119 +1,124 @@
 #include <scheduler.h>
 #include <semaphore.h>
+#include <utils.h>
+#include <list.h>
 
-typedef struct list_t {
-    sem_t semaphore;
-    struct list_t *next;
-} list_t;
+List *sem_list;
 
-list_t *sem_list = NULL;
+int compare_semaphores(const void *this, const void *other_semaphore_name) {
+    const sem_t *sem_a = (const sem_t *)this;
+    const char *sem_b_name = (char*)other_semaphore_name;
+    return strcmp(sem_a->name, sem_b_name);
+}
 
-list_t * add_sem(list_t **head, char * name, int initialValue) {
-    list_t * new_node = (list_t *) mem_alloc(sizeof(list_t));
-    strcpy(new_node->semaphore.name, name, strlen(name));
-    new_node->semaphore.value = initialValue;
-    new_node->semaphore.sem_lock = 0;
-    new_node->semaphore.blocked_queue = new_q();
+int init_semaphores(){
+    sem_list = list_init(compare_semaphores);
+    if (sem_list == NULL) {
+        return -1;
+    }
+    return 0;
+}
 
-    if (*head == NULL) {
-        *head = new_node;
+/**
+ * @brief Agrega un nuevo semáforo a la lista de semáforos.
+ *
+ * Esta función crea un nuevo semáforo con el nombre y valor inicial especificados,
+ * y lo agrega a la lista de semáforos.
+ *
+ * @param sem_name El nombre del nuevo semáforo.
+ * @param initialValue El valor inicial del semáforo.
+ * @return int Retorna 0 si el semáforo fue agregado exitosamente, o -1 si hubo un error en la asignación de memoria.
+ */
+int add_sem(char * sem_name, int initialValue) {
+    sem_t * new_sem = (sem_t *)mem_alloc(sizeof(sem_t));
+    if(new_sem == NULL){
+        return -1;
+    }
+    strcpy(new_sem->name, sem_name, strlen(sem_name));
+    new_sem->value = initialValue;
+    new_sem->sem_lock = 1;
+    new_sem->blocked_queue = new_q();
+    new_sem->count_processes = 1;
+    list_add(sem_list, new_sem);
+
+    return 0;
+}
+
+/**
+ * @brief Elimina un semáforo de la lista de semáforos y libera la memoria asociada.
+ *
+ * @param sem_name Nombre del semáforo a eliminar.
+ */
+void remove_sem(char * sem_name){
+    sem_t *found_sem = (sem_t *)list_get(sem_list, sem_name);
+    list_remove(sem_list, sem_name);
+    mem_free(found_sem);
+}
+
+// Crea un nuevo semaforo y lo incializa en el valor especificado, si no existia
+int sem_open(char *sem_name, uint64_t initialValue){
+    sem_t *aux = (sem_t *)list_get(sem_list, sem_name);
+    if(aux == NULL){
+        return add_sem(sem_name, initialValue);
     } else {
-        list_t *temp = *head;
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
-        temp->next = new_node;
+        (aux->count_processes)++;
     }
 
-    return new_node;
-}
-
-void remove_sem(list_t **head, char * name){
-    list_t *temp = *head;
-    list_t *prev = NULL;
-
-    if (temp != NULL && strcmp(temp->semaphore.name, name) == 0) {
-        *head = temp->next;
-        free_q(temp->semaphore.blocked_queue);
-        mem_free(temp);
-        return;
-    }
-
-    while (temp != NULL && strcmp(temp->semaphore.name, name) != 0) {
-        prev = temp;
-        temp = temp->next;
-    }
-
-    if (temp == NULL) {
-        return;
-    }
-
-    prev->next = temp->next;
-
-    while(has_next(temp->semaphore.blocked_queue)){
-        unblock_process_from_queue(temp->semaphore.blocked_queue);   
-    }
-    free_q(temp->semaphore.blocked_queue);
-    mem_free(temp);
-}
-
-
-list_t* find_sem(char * sem_name){
-    list_t * aux = sem_list;
-    while(aux != NULL){
-        if(strcmp(aux->semaphore.name, sem_name) == 0)
-            return aux;
-        aux = aux->next;
-    }
-    return NULL;
-}
-
-// Retorna la direccion de memoria de un nuevo semaforo, o -1 para error
-int64_t sem_open(char *sem_id, uint64_t initialValue){
-    list_t * aux = find_sem(sem_id);
-    if(aux == NULL)
-        aux = add_sem(&sem_list, sem_id, initialValue);
-    acquire(aux->semaphore.sem_lock);
-    aux->semaphore.value++;
-    release(aux->semaphore.sem_lock);
     return 0;
 }
 
-int64_t sem_close(char * sem_id){
-    list_t * aux = find_sem(sem_id);
-    if(aux != NULL) {
-        acquire(aux->semaphore.sem_lock);
-        if(aux->semaphore.value > 0)
-            aux->semaphore.value--;
-        else
-            remove_sem(&sem_list, sem_id);
-        release(aux->semaphore.sem_lock);
+void sem_close(char * sem_name){
+    sem_t * aux = (sem_t *)list_get(sem_list, sem_name);
+    
+    if(aux == NULL){
+        return;
     }
-    return 0;
+
+    acquire(&(aux->sem_lock));
+    (aux->count_processes)--;
+    release(&(aux->sem_lock));
+    
+    if(aux->count_processes == 0){
+        remove_sem(sem_name);
+        return;
+    }
+
+    return;
 }
 
 void sem_wait(char * sem_name){
-    list_t * sem_node = find_sem(sem_name);
-    if(sem_node == NULL) return;
-    acquire(sem_node->semaphore.sem_lock);
-    if(sem_node->semaphore.value > 0){
-        (sem_node->semaphore.value)--;
-    } else {
-        block_current_process_to_queue(sem_node->semaphore.blocked_queue);
+    sem_t * sem_node = (sem_t *)list_get(sem_list, sem_name);
+    
+    if(sem_node == NULL){
+        return;
     }
-    release(sem_node->semaphore.sem_lock);
+
+    acquire(&(sem_node->sem_lock));
+    uint8_t need_to_block = sem_node->value <= 0;
+    (sem_node->value)--;
+    release(&(sem_node->sem_lock));
+
+    if(need_to_block){
+        block_current_process_to_queue(sem_node->blocked_queue);
+    }
 }
 
-int64_t sem_post(char *sem_id){
-    list_t * sem_node;
-    if((sem_node = find_sem(sem_id)) == NULL)
-        return 1;
+int64_t sem_post(char *sem_name){
+    sem_t * sem_node = (sem_t *)list_get(sem_list, sem_name);
 
-    acquire(sem_node->semaphore.sem_lock);
-    if (sem_node->semaphore.value == 0){
-        unblock_process_from_queue(sem_node->semaphore.blocked_queue);
+    if(sem_node == NULL){
+        return 0;
     }
-    (sem_node->semaphore.value)++;
-    release(sem_node->semaphore.sem_lock);
-    return 0;
+
+    acquire(&(sem_node->sem_lock));
+    uint8_t need_to_unblock = sem_node->value < 0;
+    (sem_node->value)++;
+    release(&(sem_node->sem_lock));
+    
+    // Desbloqueo el primer proceso bloqueado en la cola del semaforo.
+    if (need_to_unblock){
+        unblock_process_from_queue(sem_node->blocked_queue);
+    }
+
+    return 1;
 }

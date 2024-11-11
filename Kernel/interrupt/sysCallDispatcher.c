@@ -11,7 +11,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define SYS_CALLS_QTY 32
+#define SYS_CALLS_QTY 34
 
 extern uint8_t hasregisterInfo;
 extern const uint64_t registerInfo[17];
@@ -23,13 +23,12 @@ extern Color BLACK;
 /* Funciones del sistema */
 
 // Llena buff con el carácter leído del teclado
-static uint64_t sys_read(uint64_t fd, char *buff) {
+static uint64_t sys_read(uint64_t fd) {
     if (fd != STDIN) {
         return -1;
     }
 
-    *buff = getCharFromKeyboard();
-    return 0;
+    return read_keyboard();
 }
 
 static uint64_t sys_write(uint64_t fd, char buffer) {
@@ -149,14 +148,15 @@ static void sys_mem_free(void *ptr) {
     mem_free(ptr);
 }
 
-static void *sys_mem_init(int s) {
-    return mem_init(s);
+static void sys_mem_init(void *ptr, int s) {
+    mem_init(ptr, s);
 }
 
 /* Funciones del scheduler */
 
 static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
-    return create_process(priority, program, argc, argv);
+    // TODO: Implementar fd_ids y fd_count!!
+    return create_process(priority, program, argc, argv, NULL, 0);
 }
 
 static void sched_kill_process(uint64_t pid) {
@@ -167,8 +167,8 @@ static uint64_t sched_getPID() {
     return get_pid();
 }
 
-static void sched_list_processes(char *buf) {
-    list_processes(buf);
+static char * sched_list_processes() {
+    list_processes();
 }
 
 static void sched_block_process(uint64_t pid) {
@@ -185,7 +185,7 @@ static void sched_yield() {
 
 /* Funciones de semáforos */
 
-static sem_t *sys_sem_open(char *sem_name, int init_value) {
+static int sys_sem_open(char *sem_name, int init_value) {
     return sem_open(sem_name, init_value);
 }
 
@@ -201,11 +201,31 @@ static void sys_sem_post(sem_t *sem) {
     sem_post(sem);
 }
 
+static void sys_wait_pid(uint64_t pid) {
+    wait_pid(pid);
+}
+
+static char sys_read_fd(uint64_t process_fd_index) {
+    return fd_read_current_process(process_fd_index);
+}
+
+static char sys_write_fd(uint64_t process_fd_index, char data){
+    return fd_write_current_process(process_fd_index, data);
+}
+
+static uint64_t sys_open_fd(uint64_t fd_id){
+    return fd_open_current_process(fd_id);
+}
+
+static uint64_t sys_close_fd(uint64_t fd_index){
+    return fd_close_current_process(fd_index);
+}
+
 /* Arreglo de punteros a funciones (syscalls) */
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
     /* RAX: número de syscall */
-    (void *)sys_read,               // 0
+    (void *)sys_read,      // 0
     (void *)sys_write,              // 1
     (void *)sys_clear,              // 2
     (void *)sys_getHours,           // 3
@@ -236,7 +256,12 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sys_sem_open,           // 28
     (void *)sys_sem_close,          // 29
     (void *)sys_sem_wait,           // 30
-    (void *)sys_sem_post            // 31
+    (void *)sys_sem_post,           // 31
+    (void *)sys_wait_pid,            // 32
+    (void *)sys_read_fd,            // 32
+    (void *)sys_write_fd,           // 33
+    (void *)sys_open_fd,             // 34
+    (void *)sys_close_fd             // 35
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

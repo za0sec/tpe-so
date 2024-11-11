@@ -4,12 +4,12 @@
 #include <memManager.h>
 #include <stdio.h>
 
-typedef struct node * q_t;
-
 typedef struct node{
     pcb_t pcb;
     struct node * next;
 } node_t;
+
+typedef struct node * q_t;
 
 typedef struct q_cdt{
     q_t rear;
@@ -17,7 +17,7 @@ typedef struct q_cdt{
 } q_cdt;
 
 q_adt new_q() {
-    q_adt new = mem_alloc(sizeof(q_cdt));
+    q_adt new = (q_adt)mem_alloc(sizeof(q_cdt));
     if (new == NULL) {
         return NULL;
     }
@@ -32,7 +32,7 @@ size_t get_size(q_adt q) {
 
 // Agrega un proceso al final de la cola (rear)
 void add(q_adt q, pcb_t pcb) {
-    q_t aux = mem_alloc(sizeof(node_t));
+    q_t aux = (q_t)mem_alloc(sizeof(node_t));
     
     if (aux == NULL) {
         return;
@@ -51,14 +51,16 @@ void add(q_adt q, pcb_t pcb) {
     q->size++;
 }
 
-
 int has_next(q_adt q){
+    if(q == NULL){
+        return 0;
+    }
    return q->rear != NULL;
 }
 
 pcb_t dequeue(q_adt q){
     if(q->rear == NULL){
-        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+        return return_null_pcb();
     }
 
     pcb_t to_ret = q->rear->next->pcb;     // El frente de la cola es REAR->NEXT
@@ -78,9 +80,8 @@ pcb_t dequeue(q_adt q){
 
 pcb_t find_dequeue_pid(q_adt q, uint64_t pid) {
     if (q->rear == NULL) {  // Si la cola está vacía, retornar un PCB "nulo"
-        return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+        return return_null_pcb();
     }
-
     q_t current = q->rear; // Comenzamos desde el final
     do{
         if(current->next->pcb.pid == pid){
@@ -110,7 +111,7 @@ pcb_t find_dequeue_pid(q_adt q, uint64_t pid) {
     } while(current != q->rear); 
 
     // No se encontro el proceso con el pid 
-    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED};
+    return return_null_pcb();
 }
 
 
@@ -132,4 +133,8 @@ void free_q(q_adt q) {
     // Liberamos el rear
     mem_free(q->rear);
     mem_free(q);
+}
+
+pcb_t return_null_pcb(){
+    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED, NULL, NULL};
 }
