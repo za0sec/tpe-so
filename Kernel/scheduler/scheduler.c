@@ -2,11 +2,13 @@
 #include <memManager.h>
 #include <pcb_queue.h>
 #include <utils.h>
+#include <videoDriver.h>
 #include <file_descriptor.h>
 #include <open_file_t.h>
 #include <list.h>
 
 uint64_t currentPID = 0;
+uint64_t foreground_pid = -2;
 pcb_t current_process;
 pcb_t halt_process;
 
@@ -17,61 +19,95 @@ q_adt p3 = NULL;
 
 q_adt all_blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
 q_adt blocked_read_queue = NULL;
-
 q_adt blocked_semaphore_queue = NULL;
+
 int current_semaphore = 0;
 uint8_t mutex_lock = 1;
 
+void init_scheduler(){
+    current_semaphore = 0;
+    p0 = new_q();
+    p1 = new_q();
+    p2 = new_q();
+    p3 = new_q();
+    all_blocked_queue = new_q();
+    current_process = return_null_pcb();
+    halt_process = create_process_halt();
+}
+
 uint64_t schedule(void *running_process_rsp){
+    
     current_process.rsp = running_process_rsp;
-    if(current_process.state == RUNNING){
-        current_process.used_quantum++;
-        if(current_process.used_quantum < current_process.assigned_quantum){
-            return current_process.rsp;
-        } else {
-            current_process.state = READY;
-            current_process.used_quantum = 0;
-            current_process.assigned_quantum--;
+    
+    switch(current_process.state){
+        case RUNNING:
+            current_process.used_quantum++;
 
-            if(current_process.assigned_quantum <= 0){
-                //Esto deberia ser decrementar LA PRIORIDAD
-                current_process.assigned_quantum = CPU_BOUND_QUANTUM;
+            if(current_process.used_quantum < current_process.assigned_quantum){
+                return current_process.rsp;
+            } else {
+                current_process.state = READY;
+                current_process.used_quantum = 0;
+                current_process.assigned_quantum--;
+
+                if(current_process.assigned_quantum <= 0){
+                    //Esto deberia ser decrementar LA PRIORIDAD
+                    current_process.assigned_quantum = CPU_BOUND_QUANTUM;
+                }
+
+                add_priority_queue(current_process);
             }
+            break;
 
+        case BLOCKED:
+            if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
+                //Esto deberia ser aumentar LA PRIORIDAD
+                current_process.assigned_quantum++;
+            }
+            add(all_blocked_queue, current_process);
+            break;
+
+        case READY:
             add_priority_queue(current_process);
-        }
-    } else if (current_process.state == BLOCKED){
-        if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
-            //Esto deberia ser aumentar LA PRIORIDAD
-            current_process.assigned_quantum++;
-        }
-        add(all_blocked_queue, current_process);
-    } else if (current_process.state == READY){
-        add_priority_queue(current_process);
-    } else if (current_process.state == TERMINATED){
-        if(current_process.fd_table != NULL){
-            for(int i = 0; i < MAX_FD; i++){
-                if(current_process.fd_table[i] != NULL){
-                    fd_close(current_process.fd_table[i]->id);
+            break;
+
+        case HALT:
+            halt_process.rsp = running_process_rsp;
+            break;
+
+        case TERMINATED:
+            if(current_process.pid == foreground_pid){
+                current_process.fd_table[1]->write(current_process.fd_table[1]->resource, -1);
+                foreground_pid = -1;
+            }
+        
+            if(current_process.fd_table != NULL){
+                for(int i = 0; i < MAX_FD; i++){
+                    if(current_process.fd_table[i] != NULL){
+                        fd_close(current_process.fd_table[i]->id);
+                    }
                 }
             }
-        }
-        mem_free(current_process.rsp);   
-        while(has_next(current_process.waiting_list)){
-            unblock_process_from_queue(current_process.waiting_list);
-        }
-    } // else: VENGO DE UN HALT!
+            
+            mem_free(current_process.base_sp);   
+    
+            while(has_next(current_process.waiting_list)){
+                unblock_process_from_queue(current_process.waiting_list);
+            }
+
+            break;
+
+        default:            // se estaba ejecutando el proceso halt
+            break;
+    }
 
     pcb_t next_process = get_next_process();
     
-    if(next_process.state != READY){
-        if(current_process.state == HALT){
-            return current_process.rsp;
-        }
-        current_process = create_process_halt();
-    } else {
+    if(next_process.state == READY){
         current_process = next_process;
         current_process.state = RUNNING;
+    } else {
+        current_process = halt_process;
     }
 
     return current_process.rsp;
@@ -97,11 +133,17 @@ pcb_t get_current_process(){
     return current_process;
 }
 
+uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
+    foreground_pid = create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
+    return foreground_pid;
+}
+
 // Retorna -1 por error
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
     return create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
 }
 
+// Si le pasas fd_count < 2, se le asignan los fd de stdin y stdout!
 // Retorna -1 por error
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){    
     void *base_pointer = mem_alloc(STACK_SIZE);
@@ -118,6 +160,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
 
     pcb_t new_process = {
                         currentPID++,       //pid
+                        base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         priority,           //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
@@ -158,102 +201,36 @@ pcb_t create_process_halt(){
     
     pcb_t new_process = {
                         currentPID++,       //pid
+                        base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         0,                  //priority
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         HALT,               //state
-                        NULL
+                        NULL,               //fd_table
+                        NULL                //waiting_list
                         };
       
     return new_process;
-}
-
-void init_scheduler(){
-    current_semaphore = 0;
-    p0 = new_q();
-    p1 = new_q();
-    p2 = new_q();
-    p3 = new_q();
-    all_blocked_queue = new_q();
-    current_process = return_null_pcb();
 }
 
 uint64_t get_pid(){
     return current_process.pid;
 }
 
-
-    // 8 char para el state, 3 para el pid, 1 para un espacio, 1 para el newline
-    // buf = mem_alloc(10 + (get_size(process_queue) + get_size(blocked_queue)) * 13);
-    // while(has_next(process_queue)){
-    //     pcb_t process = dequeue(process_queue);
-        
-    //     // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
-    // }
-    //  while(has_next(blocked_queue)){
-    //     pcb_t process = dequeue(process_queue);
-    //     // sprintf(buf, "%s %.8s", "TODO", process.pid, process.state);
-    // }
-
-
-
-// TODO: Terminar!
-void list_processes(char *buf){
-    // TODO: Cambiar el tamaño
-    // buf = mem_alloc();
-
-    // TODO: Header
-
-
-    // if(current_process.pid != -1){
-    //     add_proccess_to_buffer(current_process, buf);
-    // }
-
-    // pcb_t process;
-    // q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
-
-    // for(int i = 0; i < TOTAL_QUEUES; i++){
-    //     q_adt current = queues[i];
-    //     while(has_next(current)){
-    //         process = dequeue(current);
-    //         add_proccess_to_buffer(process, buf);
-    //         add(current, process);
-    //     }
-    // }
-
-    return;
+void kill_process_foreground(){
+    if(foreground_pid < 0){
+        return;
+    }
+    kill_process(foreground_pid);
 }
-
-// void add_proccess_to_buffer(pcb_t process, char *buf){
-//     char *state = get_state_string(process.state);
-//     //TODO:lenarlo
-// }
-
-// char *get_state_string(int state){
-//     char *state_string;
-//     switch(state){
-//         case READY:
-//             state_string = "READY";
-//             break;
-//         case RUNNING:
-//             state_string = "RUNNING";
-//             break;
-//         case BLOCKED:
-//             state_string = "BLOCKED";
-//             break;
-//         case TERMINATED:
-//             state_string = "TERMINATED";
-//             break;
-//     }
-// }
 
 uint64_t kill_process(uint64_t pid){
     pcb_t process;
     if(current_process.pid == pid){
         current_process.state = TERMINATED;
     } else if( (process = find_dequeue_priority(pid)).pid > 0 || (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
-        mem_free(process.rsp);
+        mem_free(process.base_sp);
     } else {
         return -1;
     }
@@ -445,4 +422,115 @@ void wait_pid(uint64_t pid) {
     }
     pcb_t process = get_process_by_pid(pid);
     block_current_process_to_queue(process.waiting_list);
+}
+
+
+char *list_processes() {
+    // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + BASE POINTER + separadores y newline)
+    const int line_size = 68;
+    const int header_size = 68; // tamaño aproximado del header
+    char *header = "PID PRIORITY STATE    BASE POINTER\n";
+    
+    // Calcula el tamaño necesario para almacenar todos los procesos
+    int total_processes = 1; // Incluir el proceso actual
+    pcb_t process;
+    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    
+    // Calcula la cantidad total de procesos en todas las colas
+    for (int i = 0; i < TOTAL_QUEUES; i++) {
+        total_processes += get_size(queues[i]);
+    }
+    
+    // Asigna memoria para el buffer completo
+    char *buffer = mem_alloc(header_size + (line_size * total_processes));
+    int offset = 0;
+    
+    // Copia el header al buffer
+    strcpy(buffer, header, header_size);
+    offset += strlen(header);
+
+    // Agrega el proceso actual si está definido
+    if (current_process.pid != -1) {
+        char line[line_size];
+        format_process_line(line, &current_process);
+        strcpy(buffer + offset, line, line_size);
+        offset += strlen(line);
+    }
+
+    // Procesa cada cola de procesos
+    for (int i = 0; i < TOTAL_QUEUES; i++) {
+        q_adt current = queues[i];
+        int size = get_size(current);
+
+        // Agrega cada proceso de la cola al buffer
+        for (int j = 0; j < size; j++) {
+            process = dequeue(current);
+
+            // Formatear cada proceso en una línea
+            char line[line_size];
+            format_process_line(line, &process);
+
+            // Copiar la línea al buffer final
+            strcpy(buffer + offset, line, line_size);
+            offset += strlen(line);
+
+            // Reencolar el proceso en su cola original
+            add(current, process);
+        }
+    }
+    return buffer;
+}
+
+void format_process_line(char *line, pcb_t *process) {
+    char pid_str[10];
+    char priority_str[5];
+    char base_pointer_str[10];
+    char *state_str;
+
+    // Convierte los enteros a cadena
+    intToStr(process->pid, pid_str);
+    intToStr(process->priority, priority_str);
+    intToStr(process->base_sp, base_pointer_str);
+
+    // Determina la cadena de estado
+    switch (process->state) {
+        case READY: state_str = "READY"; break;
+        case RUNNING: state_str = "RUNNING"; break;
+        case BLOCKED: state_str = "BLOCKED"; break;
+        case TERMINATED: state_str = "TERMINATED"; break;
+        case HALT: state_str = "HALT"; break;
+    }
+
+    // Construye la línea en el formato deseado: "PID   PRIORITY   STATE\n"
+    int offset = 0;
+
+    // Copia el PID en la línea
+    strcpy(line + offset, pid_str, strlen(pid_str));
+    offset += strlen(pid_str);
+    for(int i = 0; i < 3; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia la PRIORIDAD en la línea
+    strcpy(line + offset, priority_str, strlen(priority_str));
+    offset += strlen(priority_str);
+    for(int i = 0; i < 8; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia el ESTADO en la línea
+    strcpy(line + offset, state_str, strlen(state_str));
+    offset += strlen(state_str);
+    for(int i = 0; i < 2; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia el BASE POINTER en la línea
+    strcpy(line + offset, base_pointer_str, strlen(base_pointer_str));
+    offset += strlen(base_pointer_str);
+    line[offset++] = ' ';
+
+    // Añade el carácter de nueva línea
+    line[offset++] = '\n';
+    line[offset] = '\0'; // Termina la cadena
 }

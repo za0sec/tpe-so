@@ -154,9 +154,9 @@ static void sys_mem_init(void *ptr, int s) {
 
 /* Funciones del scheduler */
 
-static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[]) {
-    // TODO: Implementar fd_ids y fd_count!!
-    return create_process(priority, program, argc, argv, NULL, 0);
+// Si le pasas fd_count < 2, se le asignan los fd de stdin y stdout!
+static uint64_t sched_create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[], uint64_t fd_count) {
+    return create_process(priority, program, argc, argv, fd_ids, fd_count);
 }
 
 static void sched_kill_process(uint64_t pid) {
@@ -167,8 +167,8 @@ static uint64_t sched_getPID() {
     return get_pid();
 }
 
-static void sched_list_processes(char *buf) {
-    list_processes(buf);
+static char * sched_list_processes() {
+    list_processes();
 }
 
 static void sched_block_process(uint64_t pid) {
@@ -219,6 +219,10 @@ static uint64_t sys_open_fd(uint64_t fd_id){
 
 static uint64_t sys_close_fd(uint64_t fd_index){
     return fd_close_current_process(fd_index);
+}
+
+static uint64_t sched_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[], uint64_t fd_count){
+    return create_process_foreground(priority, program, argc, argv, fd_ids, fd_count);
 }
 
 /* Arreglo de punteros a funciones (syscalls) */

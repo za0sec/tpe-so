@@ -47,15 +47,15 @@ void printHelp()
 	printsColor("\n    >schetest           - test scheduler", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >priotest           - priority scheduler", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >testschedulerprocesses - test scheduler processes", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >testsync            - test sync processes", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >testsync           - test sync processes", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
-
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps};
 
 void kitty()
 {
@@ -100,6 +100,7 @@ void newLine()
 {
 	int i = checkLine();
 
+	prints("\n", MAX_BUFF);
 	(*commands_ptr[i])();
 
 	for (int i = 0; line[i] != '\0'; i++)
@@ -279,9 +280,9 @@ void handleSpecialCommands(char c)
 }
 
 void cmd_ps(){
-	char *buffer;
-	sys_list_processes(buffer);
-	prints(buffer, strlen(buffer));
+	char *processes = sys_list_processes();
+	prints(processes, MAX_BUFF);
+	sys_mem_free(processes);
 }
 
 void cmd_eliminator()

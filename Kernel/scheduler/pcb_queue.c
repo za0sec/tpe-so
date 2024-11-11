@@ -136,5 +136,5 @@ void free_q(q_adt q) {
 }
 
 pcb_t return_null_pcb(){
-    return (pcb_t){-1, 0, 0, 0, 0, TERMINATED, NULL, NULL};
+    return (pcb_t){-1, NULL, NULL, 0, 0, 0, TERMINATED, NULL, NULL};
 }
