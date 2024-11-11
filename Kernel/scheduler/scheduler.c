@@ -262,6 +262,21 @@ uint64_t kill_process(uint64_t pid){
     }
 }
 
+void block_process_pid(uint64_t pid){
+    if(current_process.pid == pid){
+        return;
+    }
+
+    pcb_t process = find_dequeue_priority(pid);
+
+    if(process.pid < 0){
+        return;
+    }
+
+    process.state = BLOCKED;
+    add(all_blocked_queue, process);
+}
+
 // Bloquea el proceso actual y lo agrega a la cola de procesos bloqueados
 uint64_t block_process(){
     current_process.state = BLOCKED;

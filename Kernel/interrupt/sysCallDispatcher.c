@@ -171,7 +171,7 @@ static char * sched_list_processes() {
 }
 
 static void sched_block_process(uint64_t pid) {
-    block_process(pid);
+    block_process_pid(pid);
 }
 
 static void sched_unblock_process(uint64_t pid) {
@@ -228,6 +228,10 @@ static void sched_create_process_set_fd(uint64_t *fd_ids, uint64_t fd_count){
     return userspace_set_fd(fd_ids, fd_count);
 }
 
+static uint64_t sys_pipe_create(){
+    return pipe_create();
+}
+
 /* Arreglo de punteros a funciones (syscalls) */
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
@@ -270,7 +274,8 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sys_open_fd,            // 35
     (void *)sys_close_fd,           // 36
     (void *)sched_create_process_foreground, // 37
-    (void *)sched_create_process_set_fd     // 38
+    (void *)sched_create_process_set_fd,     // 38
+    (void *)sys_pipe_create,        // 39
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

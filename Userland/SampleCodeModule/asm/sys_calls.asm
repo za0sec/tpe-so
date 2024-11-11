@@ -37,6 +37,7 @@ GLOBAL sys_write_fd
 GLOBAL sys_read_fd
 GLOBAL sys_open_fd
 GLOBAL sys_close_fd
+GLOBAL sys_pipe_create
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9
@@ -245,5 +246,10 @@ sys_create_process_foreground:
 
 sys_create_process_set_fd:
     mov rax, 0x26
+    int 80h
+    ret
+
+sys_pipe_create:
+    mov rax, 0x27
     int 80h
     ret

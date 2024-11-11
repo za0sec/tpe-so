@@ -18,7 +18,7 @@ static char username[USERNAME_SIZE] = "user";
 static char commandHistory[MAX_COMMAND][MAX_BUFF] = {0};
 static int commandIterator = 0;
 static int commandIdxMax = 0;
-
+uint64_t cursor_pid;
 
 char usernameLength = 4;
 
@@ -64,13 +64,13 @@ void kitty()
 	welcome();
 	char c;
 	printPrompt();
-	sys_create_process(0, &drawCursor, 0, NULL);
+	cursor_pid = sys_create_process(0, &drawCursor, 0, NULL);
 	while (1 && !terminate)
 	{
 		c = getChar();
-		// Block_cursor()
+		sys_block(cursor_pid);
 		printLine(c, strcmp(username, "user"));
-		// Unblock_cursor()
+		sys_unblock(cursor_pid);
 	}
 }
 
@@ -128,6 +128,7 @@ void printPrompt()
 
 void cmd_loop(){
 	int pid = sys_create_process_foreground(0, &loop_test, 0, NULL);
+	sys_wait_pid(pid);
 }
 
 // separa comando de parametro
@@ -379,7 +380,8 @@ void cmd_testschedulerprocesses()
 
 void cmd_test_sync() {
     char *argv[] = {"5", "1", 0};
-	create_process_foreground(0, &test_sync, 2, argv, 0, 0);	//Le paso 0 como fd_ids y fd_count, le pone stdin y stdout
+	uint64_t pid = create_process_foreground(0, &test_sync, 2, argv, 0, 0);	//Le paso 0 como fd_ids y fd_count, le pone stdin y stdout
+	sys_wait_pid(pid);
 	printsColor("CREATED 'test_sync' PROCESS!\n", MAX_BUFF, RED);
 }
 
