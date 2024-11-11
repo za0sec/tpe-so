@@ -26,55 +26,75 @@ static char *get_st(int state);
 static void print_process(pcb_t process);
 
 uint64_t schedule(void *running_process_rsp){
+    
     current_process.rsp = running_process_rsp;
-    if(current_process.state == RUNNING){
-        current_process.used_quantum++;
-        if(current_process.used_quantum < current_process.assigned_quantum){
-            return current_process.rsp;
-        } else {
-            current_process.state = READY;
-            current_process.used_quantum = 0;
-            current_process.assigned_quantum--;
+    
+    switch(current_process.state){
+        case RUNNING:
+            current_process.used_quantum++;
 
-            if(current_process.assigned_quantum <= 0){
-                //Esto deberia ser decrementar LA PRIORIDAD
-                current_process.assigned_quantum = CPU_BOUND_QUANTUM;
+            if(current_process.used_quantum < current_process.assigned_quantum){
+                return current_process.rsp;
+            } else {
+                current_process.state = READY;
+                current_process.used_quantum = 0;
+                current_process.assigned_quantum--;
+
+                if(current_process.assigned_quantum <= 0){
+                    //Esto deberia ser decrementar LA PRIORIDAD
+                    current_process.assigned_quantum = CPU_BOUND_QUANTUM;
+                }
+
+                add_priority_queue(current_process);
             }
+            break;
 
+        case BLOCKED:
+            if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
+                //Esto deberia ser aumentar LA PRIORIDAD
+                current_process.assigned_quantum++;
+            }
+            add(all_blocked_queue, current_process);
+            break;
+
+        case READY:
             add_priority_queue(current_process);
-        }
-    } else if (current_process.state == BLOCKED){
-        if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
-            //Esto deberia ser aumentar LA PRIORIDAD
-            current_process.assigned_quantum++;
-        }
-        add(all_blocked_queue, current_process);
-    } else if (current_process.state == READY){
-        add_priority_queue(current_process);
-    } else if (current_process.state == TERMINATED){
-        if(current_process.fd_table != NULL){
-            for(int i = 0; i < MAX_FD; i++){
-                if(current_process.fd_table[i] != NULL){
-                    fd_close(current_process.fd_table[i]->id);
+            break;
+
+        case TERMINATED:
+            if(current_process.fd_table != NULL){
+                for(int i = 0; i < MAX_FD; i++){
+                    if(current_process.fd_table[i] != NULL){
+                        fd_close(current_process.fd_table[i]->id);
+                    }
                 }
             }
-        }
-        mem_free(current_process.rsp);   
-        while(has_next(current_process.waiting_list)){
-            unblock_process_from_queue(current_process.waiting_list);
-        }
-    } // else: VENGO DE UN HALT!
+            
+            mem_free(current_process.rsp);   
+    
+            while(has_next(current_process.waiting_list)){
+                unblock_process_from_queue(current_process.waiting_list);
+            }
+
+            break;
+
+        default:            // se estaba ejecutando el proceso halt
+            break;
+    }
 
     pcb_t next_process = get_next_process();
     
-    if(next_process.state != READY){
+    if(next_process.state == READY){
+        if(current_process.state == HALT){
+            mem_free(current_process.rsp);          // Free stack del proceso halt 
+        }
+        current_process = next_process;
+        current_process.state = RUNNING;
+    } else {
         if(current_process.state == HALT){
             return current_process.rsp;
         }
         current_process = create_process_halt();
-    } else {
-        current_process = next_process;
-        current_process.state = RUNNING;
     }
 
     return current_process.rsp;
