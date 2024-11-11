@@ -166,6 +166,7 @@ pcb_t create_process_halt(){
                         DEFAULT_QUANTUM,    //assigned_quantum
                         0,                  //used_quantum
                         HALT,               //state
+                        NULL,
                         NULL
                         };
       
