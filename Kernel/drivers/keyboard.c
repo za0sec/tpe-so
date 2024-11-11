@@ -2,6 +2,7 @@
 #include <keyboard.h>
 #include <pipe.h>
 #include <file_descriptor.h>
+#include <videoDriver.h>
 
 open_file_t *open_file_t_keyboard;
 
@@ -108,12 +109,18 @@ void keyboard_handler(uint8_t keyPressed) {
         ascii_code = keyMap[shift][input_code];
     }
 
-    if (ctrl && input_code == 32) {
+    if (ctrl && input_code == 0x20) { // 0x20 = 32 = 'd'
         ascii_code = -1;
     }
 
-    if (ctrl && input_code == 0x20) {
-        
+    if (ctrl && input_code == 0x2E) { // 0x2E = 46 = 'c'
+        ascii_code = 0;
+        uint64_t pid = kill_process_foreground();
+        vDriver_prints("KILLED PROCESS: ", BLACK, WHITE);
+        char buffer[10];
+        intToStr(pid, buffer);
+        vDriver_prints(buffer, BLACK, WHITE);
+        vDriver_prints("\n\n", BLACK, WHITE);
     }
 
     open_file_t_keyboard->write(open_file_t_keyboard->resource, ascii_code);

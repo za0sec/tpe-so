@@ -61,7 +61,6 @@ void endless_loop() {
   while (1)
     ;
 }
-
 // void endless_loop_print(uint64_t wait) {
 //   int64_t pid = my_getpid();
 

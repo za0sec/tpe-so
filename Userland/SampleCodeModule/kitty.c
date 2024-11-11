@@ -50,13 +50,14 @@ void printHelp()
 	printsColor("\n    >testsync           - test sync processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop};
 
 void kitty()
 {
@@ -67,7 +68,9 @@ void kitty()
 	while (1 && !terminate)
 	{
 		c = getChar();
+		// Block_cursor()
 		printLine(c, strcmp(username, "user"));
+		// Unblock_cursor()
 	}
 }
 
@@ -121,6 +124,10 @@ void printPrompt()
 	prints(username, usernameLength);
 	prints(" $", MAX_BUFF);
 	printcColor('>', PINK);
+}
+
+void cmd_loop(){
+	int pid = sys_create_process_foreground(0, &loop_test, 0, NULL);
 }
 
 // separa comando de parametro

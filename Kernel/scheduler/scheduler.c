@@ -242,11 +242,13 @@ uint64_t get_pid(){
     return current_process.pid;
 }
 
-void kill_process_foreground(){
+uint64_t kill_process_foreground(){
     if(foreground_pid < 0){
-        return;
+        return -1;
     }
-    kill_process(foreground_pid);
+    uint64_t pid = kill_process(foreground_pid);
+    foreground_pid = -1;
+    return pid;
 }
 
 uint64_t kill_process(uint64_t pid){
