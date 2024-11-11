@@ -17,7 +17,7 @@ void kitty();
 void printHelp();
 void newLine();
 void printLine(char c, int username);
-int checkLine();
+void checkLine(int *command_idx, int *after_pipe_idx);
 void cmd_undefined();
 void cmd_help();
 void cmd_time();

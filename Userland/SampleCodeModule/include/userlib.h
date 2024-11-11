@@ -107,6 +107,8 @@ void welcome();
 
 void registerInfo();
 
+void cat();
+
 uint64_t test_mm(uint64_t argc, char *argv[]);
 
 #endif /* _USERLIB_H_ */

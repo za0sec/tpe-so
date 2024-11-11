@@ -434,3 +434,10 @@ int atoi(const char *str){
 int print_mem(uint64_t mem){
 	return sys_printmem(mem);
 }
+
+void cat(){
+	char c;
+	while((c = sys_read_fd(0)) != -1) {
+		write_char(c);
+	}
+}
