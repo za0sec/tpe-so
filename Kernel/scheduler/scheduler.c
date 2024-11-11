@@ -11,6 +11,8 @@ uint64_t currentPID = 0;
 uint64_t foreground_pid = -2;
 pcb_t current_process;
 pcb_t halt_process;
+uint64_t userspace_process_creation_fd_ids[MAX_FD] = {0, 1};
+uint64_t userspace_process_creation_fd_count = 0;
 
 q_adt p0 = NULL;
 q_adt p1 = NULL;
@@ -133,9 +135,13 @@ pcb_t get_current_process(){
     return current_process;
 }
 
-uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
-    foreground_pid = create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
+uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]){
+    foreground_pid = create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count);
     return foreground_pid;
+}
+
+uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]){
+    return create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count);
 }
 
 // Retorna -1 por error
@@ -186,6 +192,24 @@ void halt(){
     while(1){
         asm_halt();
     }
+}
+
+void userspace_set_fd(uint64_t *fd_ids, int fd_count){
+    if(fd_count < 2){
+        userspace_process_creation_fd_ids[0] = 0;
+        userspace_process_creation_fd_ids[1] = 1;
+        userspace_process_creation_fd_count = 0;
+        return;
+    }
+
+    int fd_idx;
+    for(fd_idx = 0; fd_idx < fd_count; fd_idx++){
+        userspace_process_creation_fd_ids[fd_idx] = fd_ids[fd_idx];
+    }
+    for(; fd_idx < MAX_FD; fd_idx++){
+        userspace_process_creation_fd_ids[fd_idx] = -1;
+    }
+    userspace_process_creation_fd_count = fd_count;
 }
 
 // @returns pcb_t el proceso halt

@@ -33,6 +33,40 @@ int scr_width;
 
 static uint32_t uintToBase(uint64_t value, char *buffer, uint32_t base);
 
+uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[10], uint64_t fd_count){
+	int *fd_ids_array;
+	if(fd_ids == NULL){
+		fd_ids_array = NULL;
+		fd_count = 0;
+	} else {
+		int *fd_ids_array = sys_mem_alloc(sizeof(int) * 10);
+		for(int i = 0; i < fd_count; i++){
+			fd_ids_array[i] = fd_ids[i];
+		}
+	}
+
+	sys_create_process_set_fd(fd_ids_array, fd_count);
+
+	sys_create_process_foreground(priority, program, argc, argv);
+}
+
+uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[10], uint64_t fd_count){
+	int *fd_ids_array;
+	if(fd_ids == NULL){
+		fd_ids_array = NULL;
+		fd_count = 0;
+	} else {
+		int *fd_ids_array = sys_mem_alloc(sizeof(int) * 10);
+		for(int i = 0; i < fd_count; i++){
+			fd_ids_array[i] = fd_ids[i];
+		}
+	}
+
+	sys_create_process_set_fd(fd_ids_array, fd_count);
+
+	sys_create_process(priority, program, argc, argv);
+}
+
 void triggerSpeaker(uint32_t frequence, uint64_t duration)
 {
 	sys_playSpeaker(frequence, duration);
@@ -44,6 +78,10 @@ void playMelody(NoteType *melody, int length)
 	{
 		triggerSpeaker(melody[i].tone, melody[i].duration);
 	}
+}
+
+void write_char(char c){
+	sys_write_fd(STDOUT, c);
 }
 
 void printc(char c)
@@ -66,6 +104,14 @@ void prints(const char *str, int lenght)
 	for (int i = 0; i < lenght && str[i] != 0; i++)
 	{
 		printc(str[i]);
+	}
+}
+
+void write_string(const char *str, int lenght)
+{
+	for (int i = 0; i < lenght && str[i] != 0; i++)
+	{
+		write_char(str[i]);
 	}
 }
 

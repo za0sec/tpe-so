@@ -25,6 +25,9 @@ pcb_t get_next_process();
 void initProcessWrapper(program_t program, uint64_t argc, char **argv);
 
 // Process management
+void userspace_set_fd(uint64_t *fd_ids, int fd_count);
+uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]);
+uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
 uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count);
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);

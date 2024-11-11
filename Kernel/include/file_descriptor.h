@@ -107,7 +107,7 @@ int compare_file_descriptors_id(open_file_t *fd, uint64_t id);
  * @param close Puntero a la función de cierre.
  * @return Puntero al nuevo descriptor de archivo, o NULL en caso de error.
  */
-open_file_t * fd_create(void *resource, char (*read)(void *src), char (*write)(void *dest, char data), int (*close)());
+open_file_t * fd_create(void *resource, char (*read)(void *src), int (*write)(void *dest, char data), int (*close)());
 
 /**
  * @brief Agrega un nuevo descriptor de archivo al sistema global.
@@ -120,7 +120,7 @@ open_file_t * fd_create(void *resource, char (*read)(void *src), char (*write)(v
  * @param close Puntero a la función de cierre.
  * @return uint64_t ID del FD creado en caso de éxito, -1 en caso de error.
  */
-uint64_t fd_add(void *resource, char (*read), char (*write)(char data), int (*close));
+uint64_t fd_add(void *resource, char (*read), int (*write)(char data), int (*close));
 
 /**
  * @brief Elimina un descriptor de archivo de la lista global.
