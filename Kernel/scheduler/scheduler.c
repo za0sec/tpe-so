@@ -8,6 +8,7 @@
 #include <list.h>
 
 uint64_t currentPID = 0;
+uint64_t foreground_pid = -1;
 pcb_t current_process;
 pcb_t halt_process;
 
@@ -75,6 +76,11 @@ uint64_t schedule(void *running_process_rsp){
             break;
 
         case TERMINATED:
+            if(current_process.pid == foreground_pid){
+                current_process.fd_table[1]->write(current_process.fd_table[1]->resource, -1);
+                foreground_pid = -1;
+            }
+        
             if(current_process.fd_table != NULL){
                 for(int i = 0; i < MAX_FD; i++){
                     if(current_process.fd_table[i] != NULL){
@@ -127,11 +133,17 @@ pcb_t get_current_process(){
     return current_process;
 }
 
+uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
+    foreground_pid = create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
+    return foreground_pid;
+}
+
 // Retorna -1 por error
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
     return create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
 }
 
+// Si le pasas fd_count < 2, se le asignan los fd de stdin y stdout!
 // Retorna -1 por error
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){    
     void *base_pointer = mem_alloc(STACK_SIZE);
@@ -206,115 +218,11 @@ uint64_t get_pid(){
     return current_process.pid;
 }
 
-
-char *list_processes() {
-    // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + BASE POINTER + separadores y newline)
-    const int line_size = 68;
-    const int header_size = 68; // tamaño aproximado del header
-    char *header = "PID PRIORITY STATE    BASE POINTER\n";
-    
-    // Calcula el tamaño necesario para almacenar todos los procesos
-    int total_processes = 1; // Incluir el proceso actual
-    pcb_t process;
-    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
-    
-    // Calcula la cantidad total de procesos en todas las colas
-    for (int i = 0; i < TOTAL_QUEUES; i++) {
-        total_processes += get_size(queues[i]);
+void kill_process_foreground(){
+    if(foreground_pid < 0){
+        return;
     }
-    
-    // Asigna memoria para el buffer completo
-    char *buffer = mem_alloc(header_size + (line_size * total_processes));
-    int offset = 0;
-    
-    // Copia el header al buffer
-    strcpy(buffer, header, header_size);
-    offset += strlen(header);
-
-    // Agrega el proceso actual si está definido
-    if (current_process.pid != -1) {
-        char line[line_size];
-        format_process_line(line, &current_process);
-        strcpy(buffer + offset, line, line_size);
-        offset += strlen(line);
-    }
-
-    // Procesa cada cola de procesos
-    for (int i = 0; i < TOTAL_QUEUES; i++) {
-        q_adt current = queues[i];
-        int size = get_size(current);
-
-        // Agrega cada proceso de la cola al buffer
-        for (int j = 0; j < size; j++) {
-            process = dequeue(current);
-
-            // Formatear cada proceso en una línea
-            char line[line_size];
-            format_process_line(line, &process);
-
-            // Copiar la línea al buffer final
-            strcpy(buffer + offset, line, line_size);
-            offset += strlen(line);
-
-            // Reencolar el proceso en su cola original
-            add(current, process);
-        }
-    }
-    return buffer;
-}
-
-void format_process_line(char *line, pcb_t *process) {
-    char pid_str[10];
-    char priority_str[5];
-    char base_pointer_str[10];
-    char *state_str;
-
-    // Convierte los enteros a cadena
-    intToStr(process->pid, pid_str);
-    intToStr(process->priority, priority_str);
-    intToStr(process->base_sp, base_pointer_str);
-
-    // Determina la cadena de estado
-    switch (process->state) {
-        case READY: state_str = "READY"; break;
-        case RUNNING: state_str = "RUNNING"; break;
-        case BLOCKED: state_str = "BLOCKED"; break;
-        case TERMINATED: state_str = "TERMINATED"; break;
-        case HALT: state_str = "HALT"; break;
-    }
-
-    // Construye la línea en el formato deseado: "PID   PRIORITY   STATE\n"
-    int offset = 0;
-
-    // Copia el PID en la línea
-    strcpy(line + offset, pid_str, strlen(pid_str));
-    offset += strlen(pid_str);
-    for(int i = 0; i < 3; i++){
-        line[offset++] = ' ';
-    }
-
-    // Copia la PRIORIDAD en la línea
-    strcpy(line + offset, priority_str, strlen(priority_str));
-    offset += strlen(priority_str);
-    for(int i = 0; i < 8; i++){
-        line[offset++] = ' ';
-    }
-
-    // Copia el ESTADO en la línea
-    strcpy(line + offset, state_str, strlen(state_str));
-    offset += strlen(state_str);
-    for(int i = 0; i < 2; i++){
-        line[offset++] = ' ';
-    }
-
-    // Copia el BASE POINTER en la línea
-    strcpy(line + offset, base_pointer_str, strlen(base_pointer_str));
-    offset += strlen(base_pointer_str);
-    line[offset++] = ' ';
-
-    // Añade el carácter de nueva línea
-    line[offset++] = '\n';
-    line[offset] = '\0'; // Termina la cadena
+    kill_process(foreground_pid);
 }
 
 uint64_t kill_process(uint64_t pid){
@@ -514,4 +422,115 @@ void wait_pid(uint64_t pid) {
     }
     pcb_t process = get_process_by_pid(pid);
     block_current_process_to_queue(process.waiting_list);
+}
+
+
+char *list_processes() {
+    // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + BASE POINTER + separadores y newline)
+    const int line_size = 68;
+    const int header_size = 68; // tamaño aproximado del header
+    char *header = "PID PRIORITY STATE    BASE POINTER\n";
+    
+    // Calcula el tamaño necesario para almacenar todos los procesos
+    int total_processes = 1; // Incluir el proceso actual
+    pcb_t process;
+    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    
+    // Calcula la cantidad total de procesos en todas las colas
+    for (int i = 0; i < TOTAL_QUEUES; i++) {
+        total_processes += get_size(queues[i]);
+    }
+    
+    // Asigna memoria para el buffer completo
+    char *buffer = mem_alloc(header_size + (line_size * total_processes));
+    int offset = 0;
+    
+    // Copia el header al buffer
+    strcpy(buffer, header, header_size);
+    offset += strlen(header);
+
+    // Agrega el proceso actual si está definido
+    if (current_process.pid != -1) {
+        char line[line_size];
+        format_process_line(line, &current_process);
+        strcpy(buffer + offset, line, line_size);
+        offset += strlen(line);
+    }
+
+    // Procesa cada cola de procesos
+    for (int i = 0; i < TOTAL_QUEUES; i++) {
+        q_adt current = queues[i];
+        int size = get_size(current);
+
+        // Agrega cada proceso de la cola al buffer
+        for (int j = 0; j < size; j++) {
+            process = dequeue(current);
+
+            // Formatear cada proceso en una línea
+            char line[line_size];
+            format_process_line(line, &process);
+
+            // Copiar la línea al buffer final
+            strcpy(buffer + offset, line, line_size);
+            offset += strlen(line);
+
+            // Reencolar el proceso en su cola original
+            add(current, process);
+        }
+    }
+    return buffer;
+}
+
+void format_process_line(char *line, pcb_t *process) {
+    char pid_str[10];
+    char priority_str[5];
+    char base_pointer_str[10];
+    char *state_str;
+
+    // Convierte los enteros a cadena
+    intToStr(process->pid, pid_str);
+    intToStr(process->priority, priority_str);
+    intToStr(process->base_sp, base_pointer_str);
+
+    // Determina la cadena de estado
+    switch (process->state) {
+        case READY: state_str = "READY"; break;
+        case RUNNING: state_str = "RUNNING"; break;
+        case BLOCKED: state_str = "BLOCKED"; break;
+        case TERMINATED: state_str = "TERMINATED"; break;
+        case HALT: state_str = "HALT"; break;
+    }
+
+    // Construye la línea en el formato deseado: "PID   PRIORITY   STATE\n"
+    int offset = 0;
+
+    // Copia el PID en la línea
+    strcpy(line + offset, pid_str, strlen(pid_str));
+    offset += strlen(pid_str);
+    for(int i = 0; i < 3; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia la PRIORIDAD en la línea
+    strcpy(line + offset, priority_str, strlen(priority_str));
+    offset += strlen(priority_str);
+    for(int i = 0; i < 8; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia el ESTADO en la línea
+    strcpy(line + offset, state_str, strlen(state_str));
+    offset += strlen(state_str);
+    for(int i = 0; i < 2; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia el BASE POINTER en la línea
+    strcpy(line + offset, base_pointer_str, strlen(base_pointer_str));
+    offset += strlen(base_pointer_str);
+    line[offset++] = ' ';
+
+    // Añade el carácter de nueva línea
+    line[offset++] = '\n';
+    line[offset] = '\0'; // Termina la cadena
 }
