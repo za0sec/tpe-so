@@ -38,6 +38,7 @@ GLOBAL sys_read_fd
 GLOBAL sys_open_fd
 GLOBAL sys_close_fd
 GLOBAL sys_pipe_create
+GLOBAL sys_nice
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9
@@ -251,5 +252,10 @@ sys_create_process_set_fd:
 
 sys_pipe_create:
     mov rax, 0x27
+    int 80h
+    ret
+
+sys_nice:
+    mov rax, 0x28
     int 80h
     ret

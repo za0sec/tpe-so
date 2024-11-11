@@ -232,6 +232,10 @@ static uint64_t sys_pipe_create(){
     return pipe_create();
 }
 
+static uint64_t sys_set_priority(uint64_t pid, uint8_t priority){
+    return set_priority(pid, priority);
+}
+
 /* Arreglo de punteros a funciones (syscalls) */
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
@@ -276,6 +280,7 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sched_create_process_foreground, // 37
     (void *)sched_create_process_set_fd,     // 38
     (void *)sys_pipe_create,        // 39
+    (void *)sys_set_priority       // 40
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

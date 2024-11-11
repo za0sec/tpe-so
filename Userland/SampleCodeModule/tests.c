@@ -4,7 +4,7 @@
 #include <tests.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "test_util.h"
+#include <test_util.h>
 #include <time.h>
 
 #define SEM_ID "sem"
@@ -20,7 +20,7 @@
 #define TOTAL_PROCESSES 3
 #define LOWEST 0  // TODO: Change as required
 #define MEDIUM 1  // TODO: Change as required
-#define HIGHEST 2 // TODO: Change as required
+#define HIGHEST 3 // TODO: Change as required
 
 
 enum State { RUNNING,
@@ -240,7 +240,7 @@ void test_prio() {
   prints("\nCHANGING PRIORITIES...\n", MAX_BUFF);
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    //my_nice(pids[i], prio[i]);
+    sys_nice(pids[i], prio[i]);
 
   bussy_wait(WAIT);
   prints("\nBLOCKING...\n" ,MAX_BUFF);
@@ -251,7 +251,7 @@ void test_prio() {
   prints("CHANGING PRIORITIES WHILE BLOCKED...\n",MAX_BUFF);
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    //my_nice(pids[i], MEDIUM);
+    sys_nice(pids[i], MEDIUM);
 
   prints("UNBLOCKING...\n",MAX_BUFF);
 
