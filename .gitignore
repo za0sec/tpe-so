@@ -16,6 +16,7 @@
 *.img
 *.qcow2
 *.vmdk
+*.elf
 
 #Object files
 *.o
