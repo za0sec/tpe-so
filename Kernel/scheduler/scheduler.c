@@ -8,7 +8,7 @@
 #include <list.h>
 
 uint64_t currentPID = 0;
-uint64_t foreground_pid = -1;
+uint64_t foreground_pid = -2;
 pcb_t current_process;
 pcb_t halt_process;
 
