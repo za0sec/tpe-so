@@ -49,22 +49,23 @@ void printHelp()
 	printsColor("\n    >testschedulerprocesses - test scheduler processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >testsync           - test sync processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat};
 
 void kitty()
 {
 	welcome();
 	char c;
 	printPrompt();
+	sys_create_process(0, &drawCursor, 0, NULL);
 	while (1 && !terminate)
 	{
-		drawCursor();
 		c = getChar();
 		printLine(c, strcmp(username, "user"));
 	}
@@ -184,6 +185,10 @@ void cmd_memtest()
     if (test_mm(1, argv) == -1){
 		printsColor("test_mm ERROR\n", MAX_BUFF, RED);
 	}
+}
+
+void cmd_cat(){
+	prints(parameter, MAX_BUFF);
 }
 
 void cmd_schetest()
@@ -394,7 +399,6 @@ void welcome()
 	prints("\nPlease enter your username: ", MAX_BUFF);
 	while (!strcmp(username, "user"))
 	{
-		drawCursor();
 		c = getChar();
 		printLine(c, strcmp(username, "user"));
 	}
