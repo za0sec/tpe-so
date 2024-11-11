@@ -208,10 +208,10 @@ uint64_t get_pid(){
 
 
 char *list_processes() {
-    // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + separadores y newline)
-    const int line_size = 30;
-    const int header_size = 50; // tamaño aproximado del header
-    char *header = "PID   PRIORITY   STATE\n";
+    // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + BASE POINTER + separadores y newline)
+    const int line_size = 68;
+    const int header_size = 68; // tamaño aproximado del header
+    char *header = "PID PRIORITY STATE    BASE POINTER\n";
     
     // Calcula el tamaño necesario para almacenar todos los procesos
     int total_processes = 1; // Incluir el proceso actual
@@ -266,11 +266,13 @@ char *list_processes() {
 void format_process_line(char *line, pcb_t *process) {
     char pid_str[10];
     char priority_str[5];
+    char base_pointer_str[10];
     char *state_str;
 
     // Convierte los enteros a cadena
     intToStr(process->pid, pid_str);
     intToStr(process->priority, priority_str);
+    intToStr(process->base_sp, base_pointer_str);
 
     // Determina la cadena de estado
     switch (process->state) {
@@ -287,16 +289,28 @@ void format_process_line(char *line, pcb_t *process) {
     // Copia el PID en la línea
     strcpy(line + offset, pid_str, strlen(pid_str));
     offset += strlen(pid_str);
-    line[offset++] = ' ';
+    for(int i = 0; i < 3; i++){
+        line[offset++] = ' ';
+    }
 
     // Copia la PRIORIDAD en la línea
     strcpy(line + offset, priority_str, strlen(priority_str));
     offset += strlen(priority_str);
-    line[offset++] = ' ';
+    for(int i = 0; i < 8; i++){
+        line[offset++] = ' ';
+    }
 
     // Copia el ESTADO en la línea
     strcpy(line + offset, state_str, strlen(state_str));
     offset += strlen(state_str);
+    for(int i = 0; i < 2; i++){
+        line[offset++] = ' ';
+    }
+
+    // Copia el BASE POINTER en la línea
+    strcpy(line + offset, base_pointer_str, strlen(base_pointer_str));
+    offset += strlen(base_pointer_str);
+    line[offset++] = ' ';
 
     // Añade el carácter de nueva línea
     line[offset++] = '\n';
