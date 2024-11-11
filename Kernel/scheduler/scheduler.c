@@ -49,23 +49,22 @@ uint64_t schedule(void *running_process_rsp){
                 return current_process.rsp;
             } else {
                 current_process.state = READY;
+                current_process.priority = (current_process.priority + 1) > HIGHEST_QUEUE ? HIGHEST_QUEUE : current_process.priority + 1;
+                current_process.assigned_quantum = ASSIGN_QUANTUM(current_process.priority);
                 current_process.used_quantum = 0;
-                current_process.assigned_quantum--;
-
-                if(current_process.assigned_quantum <= 0){
-                    //Esto deberia ser decrementar LA PRIORIDAD
-                    current_process.assigned_quantum = CPU_BOUND_QUANTUM;
-                }
-
                 add_priority_queue(current_process);
             }
             break;
 
         case BLOCKED:
-            if(++current_process.used_quantum < current_process.assigned_quantum && current_process.assigned_quantum < IO_BOUND_QUANTUM){
-                //Esto deberia ser aumentar LA PRIORIDAD
-                current_process.assigned_quantum++;
+            // Si el proceso se bloquea antes de usar sus quantums, lo paso a una cola de mejor prioridad
+            if(++current_process.used_quantum < current_process.assigned_quantum){
+                current_process.priority = (current_process.priority - 1) < 0 ? 0 : current_process.priority - 1;
+                current_process.assigned_quantum = ASSIGN_QUANTUM(current_process.priority);
             }
+
+            current_process.used_quantum = 0;
+
             add(all_blocked_queue, current_process);
             break;
 
@@ -164,12 +163,14 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
     
     open_file_t **fd_table = fd_open_fd_table(fd_ids, fd_count);
 
+    int assigned_quantum = ASSIGN_QUANTUM(priority);  // Quantum segun nivel de prioridad
+
     pcb_t new_process = {
                         currentPID++,       //pid
                         base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         priority,           //priority
-                        DEFAULT_QUANTUM,    //assigned_quantum
+                        assigned_quantum,    //assigned_quantum
                         0,                  //used_quantum
                         state,              //state
                         fd_table,
@@ -222,13 +223,13 @@ pcb_t create_process_halt(){
 
     //TODO: que pongo en argc y argv?
     void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, &halt, 0, NULL);
-    
+
     pcb_t new_process = {
                         currentPID++,       //pid
                         base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         0,                  //priority
-                        DEFAULT_QUANTUM,    //assigned_quantum
+                        0,                  //assigned_quantum
                         0,                  //used_quantum
                         HALT,               //state
                         NULL,               //fd_table
@@ -352,6 +353,7 @@ void yield(){
 }
 
 uint8_t add_priority_queue(pcb_t process){
+    process.assigned_quantum = ASSIGN_QUANTUM(process.priority);  // Quantum segun nivel de prioridad
     switch(process.priority){
         case(0):
             add(p0, process);

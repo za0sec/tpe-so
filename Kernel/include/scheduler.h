@@ -7,10 +7,9 @@
 #include <stdint.h>
 
 #define STACK_SIZE 4096
-#define DEFAULT_QUANTUM 5
-#define CPU_BOUND_QUANTUM 3
-#define IO_BOUND_QUANTUM 7
 #define TOTAL_QUEUES 5
+#define HIGHEST_QUEUE 3
+#define ASSIGN_QUANTUM(priority) ((priority + 1) * 3)
 typedef uint64_t (*program_t)(uint64_t argc, char *argv[]);
 
 // Assembly functions
