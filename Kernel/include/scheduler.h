@@ -7,10 +7,10 @@
 #include <stdint.h>
 
 #define STACK_SIZE 4096
-#define DEFAULT_QUANTUM 5
-#define CPU_BOUND_QUANTUM 3
-#define IO_BOUND_QUANTUM 7
 #define TOTAL_QUEUES 5
+#define HIGHEST_QUEUE 3
+#define AGING_THRESHOLD 100
+#define ASSIGN_QUANTUM(priority) ((priority + 1) * 3)
 typedef uint64_t (*program_t)(uint64_t argc, char *argv[]);
 
 // Assembly functions
@@ -31,6 +31,7 @@ uint64_t userspace_create_process(int priority, program_t program, uint64_t argc
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
 uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count);
 uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
+uint64_t set_priority(uint64_t pid, uint8_t priority);
 pcb_t create_process_halt();
 uint64_t kill_process(uint64_t pid);
 uint64_t kill_process_foreground();

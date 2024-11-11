@@ -67,13 +67,10 @@ void kitty()
 	welcome();
 	char c;
 	printPrompt();
-	cursor_pid = sys_create_process(0, &drawCursor, 0, NULL);
 	while (1 && !terminate)
 	{
 		c = getChar();
-		sys_block(cursor_pid);
 		printLine(c, strcmp(username, "user"));
-		sys_unblock(cursor_pid);
 	}
 }
 
