@@ -186,55 +186,101 @@ uint64_t get_pid(){
     return current_process.pid;
 }
 
-void list_processes() {
-    vDriver_prints("\nPID  STATE     PRIORITY", WHITE, BLACK);
-    vDriver_prints("\n--------------------------\n", WHITE, BLACK);
 
-    if (current_process.pid != -1) {
-        print_process(current_process);
-    }
-
+char *list_processes() {
+    // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + separadores y newline)
+    const int line_size = 30;
+    const int header_size = 50; // tamaño aproximado del header
+    char *header = "PID   PRIORITY   STATE\n";
+    
+    // Calcula el tamaño necesario para almacenar todos los procesos
+    int total_processes = 1; // Incluir el proceso actual
     pcb_t process;
     q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    
+    // Calcula la cantidad total de procesos en todas las colas
+    for (int i = 0; i < TOTAL_QUEUES; i++) {
+        total_processes += get_size(queues[i]);
+    }
+    
+    // Asigna memoria para el buffer completo
+    char *buffer = mem_alloc(header_size + (line_size * total_processes));
+    int offset = 0;
+    
+    // Copia el header al buffer
+    strcpy(buffer, header, header_size);
+    offset += strlen(header);
+
+    // Agrega el proceso actual si está definido
+    if (current_process.pid != -1) {
+        char line[line_size];
+        format_process_line(line, &current_process);
+        strcpy(buffer + offset, line, line_size);
+        offset += strlen(line);
+    }
+
+    // Procesa cada cola de procesos
     for (int i = 0; i < TOTAL_QUEUES; i++) {
         q_adt current = queues[i];
         int size = get_size(current);
+
+        // Agrega cada proceso de la cola al buffer
         for (int j = 0; j < size; j++) {
             process = dequeue(current);
-            print_process(process);
+
+            // Formatear cada proceso en una línea
+            char line[line_size];
+            format_process_line(line, &process);
+
+            // Copiar la línea al buffer final
+            strcpy(buffer + offset, line, line_size);
+            offset += strlen(line);
+
+            // Reencolar el proceso en su cola original
             add(current, process);
         }
     }
+    return buffer;
 }
 
-static void print_process(pcb_t process) {
-    char *pid_str;
-    char *priority_str;
+void format_process_line(char *line, pcb_t *process) {
+    char pid_str[10];
+    char priority_str[5];
+    char *state_str;
 
-    intToStr(process.pid, pid_str);
-    intToStr(process.priority, priority_str);
+    // Convierte los enteros a cadena
+    intToStr(process->pid, pid_str);
+    intToStr(process->priority, priority_str);
 
-    vDriver_prints(pid_str, WHITE, BLACK);
-    vDriver_prints(" ", WHITE, BLACK);
-    vDriver_prints(get_st(process.state), WHITE, BLACK);
-    vDriver_prints(" ", WHITE, BLACK);
-    vDriver_prints(priority_str, WHITE, BLACK);
-    vDriver_prints("\n", WHITE, BLACK);
-}
-
-static char *get_st(int state) {
-    switch (state) {
-        case READY:
-            return "READY";
-        case RUNNING:
-            return "RUNNING";
-        case BLOCKED:
-            return "BLOCKED";
-        case TERMINATED:
-            return "TERMINATED";
-        default:
-            return "HALT";
+    // Determina la cadena de estado
+    switch (process->state) {
+        case READY: state_str = "READY"; break;
+        case RUNNING: state_str = "RUNNING"; break;
+        case BLOCKED: state_str = "BLOCKED"; break;
+        case TERMINATED: state_str = "TERMINATED"; break;
+        case HALT: state_str = "HALT"; break;
     }
+
+    // Construye la línea en el formato deseado: "PID   PRIORITY   STATE\n"
+    int offset = 0;
+
+    // Copia el PID en la línea
+    strcpy(line + offset, pid_str, strlen(pid_str));
+    offset += strlen(pid_str);
+    line[offset++] = ' ';
+
+    // Copia la PRIORIDAD en la línea
+    strcpy(line + offset, priority_str, strlen(priority_str));
+    offset += strlen(priority_str);
+    line[offset++] = ' ';
+
+    // Copia el ESTADO en la línea
+    strcpy(line + offset, state_str, strlen(state_str));
+    offset += strlen(state_str);
+
+    // Añade el carácter de nueva línea
+    line[offset++] = '\n';
+    line[offset] = '\0'; // Termina la cadena
 }
 
 uint64_t kill_process(uint64_t pid){

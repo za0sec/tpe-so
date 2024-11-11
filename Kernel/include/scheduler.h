@@ -38,8 +38,7 @@ uint64_t get_pid();
 pcb_t get_current_process();
 int remove_file_descriptor_current_process(open_file_t *fd);
 void wait_pid(uint64_t pid);
-void list_processes(char *buf);
-void list_processes();
+char * list_processes();
 void yield();
 
 // Queue management
