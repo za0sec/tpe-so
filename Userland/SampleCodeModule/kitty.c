@@ -10,7 +10,10 @@
 // initialize all to 0
 char line[MAX_BUFF + 1] = {0};
 char parameter[MAX_BUFF + 1] = {0};
+char after_pipe[MAX_BUFF + 1] = {0};
 char command[MAX_BUFF + 1] = {0};
+int command_idx = 0;
+int after_pipe_idx = 0;
 int terminate = 0;
 int linePos = 0;
 char lastc;
@@ -100,23 +103,40 @@ void printLine(char c, int username)
 	lastc = c;
 }
 
-void newLine()
-{
-	int i = checkLine();
+void newLine(){
+	checkLine(&command_idx, &after_pipe_idx);
 
 	prints("\n", MAX_BUFF);
-	(*commands_ptr[i])();
+	if (after_pipe[0] != '\0'){
+		pipe_command();
+	} else {
+		(*commands_ptr[command_idx])();
+	}
 
-	for (int i = 0; line[i] != '\0'; i++)
-	{
+	for (int i = 0; line[i] != '\0'; i++){
 		line[i] = 0;
 		command[i] = 0;
 		parameter[i] = 0;
+		after_pipe[i] = 0;
+		command_idx = 0;
+		after_pipe_idx = 0;
+
 	}
 	linePos = 0;
 
 	prints("\n", MAX_BUFF);
 	printPrompt();
+}
+
+void pipe_command(){
+	uint64_t fd_id = sys_pipe_create();
+	uint64_t first_pipe_fds[2] = {0, fd_id};
+	uint64_t second_pipe_fds[2] = {fd_id, 1};
+	
+	uint64_t pid1 = create_process_foreground(0, commands_ptr[command_idx], 0, NULL, first_pipe_fds, 2);
+	create_process(0, commands_ptr[after_pipe_idx], 0, NULL, second_pipe_fds, 2);
+	
+	sys_wait_pid(pid1);
 }
 
 void printPrompt()
@@ -132,20 +152,25 @@ void cmd_loop(){
 }
 
 // separa comando de parametro
-int checkLine()
-{
+void checkLine(int *command_idx, int *after_pipe_idx){
 	int i = 0;
 	int j = 0;
+	int m = 0;
 	int k = 0;
-	for (j = 0; j < linePos && line[j] != ' '; j++)
-	{
+	for (j = 0; j < linePos && line[j] != ' '; j++){
 		command[j] = line[j];
 	}
-	if (j < linePos)
-	{
+
+	while (j < linePos){
 		j++;
-		while (j < linePos)
-		{
+		if (line[j] == '|'){
+			while (line[j] == ' ' || line[j] == '|')
+				j++;
+
+			while (j < linePos) {
+				after_pipe[m++] = line[j++];
+			}
+		} else {
 			parameter[k++] = line[j++];
 		}
 	}
@@ -153,15 +178,21 @@ int checkLine()
 	strcpyForParam(commandHistory[commandIdxMax++], command, parameter);
 	commandIterator = commandIdxMax;
 
-	for (i = 1; i < MAX_ARGS; i++)
-	{
-		if (strcmp(command, commands[i]) == 0)
-		{
-			return i;
+	for (i = 1; i < MAX_ARGS; i++) {
+		if (strcmp(command, commands[i]) == 0) {
+			*command_idx = i;
+			if (after_pipe[0] == '\0') {
+				return;
+			}
+			for (int j = 1; j < MAX_ARGS; j++) {
+				if (strcmp(after_pipe, commands[j]) == 0) {
+					*after_pipe_idx = j;
+					return;
+				}
+			}
 		}
 	}
 
-	return 0;
 }
 
 void cmd_setusername()
@@ -196,7 +227,8 @@ void cmd_memtest()
 }
 
 void cmd_cat(){
-	prints(parameter, MAX_BUFF);
+	uint64_t pid = create_process_foreground(0, &cat, 0, NULL, NULL, 0);
+	sys_wait_pid(pid);
 }
 
 void cmd_schetest()

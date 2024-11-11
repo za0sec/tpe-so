@@ -414,7 +414,7 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
 
 void loop_test() {
   while (1) {
-    if (sys_getSeconds() % 1 == 0) write_string("hola", strlen("hola"));
+    if (sys_getSeconds() % 2 == 0) write_string("hola", strlen("hola"));
   }
 }
 

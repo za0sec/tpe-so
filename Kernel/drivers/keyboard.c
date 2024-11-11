@@ -110,6 +110,7 @@ void keyboard_handler(uint8_t keyPressed) {
     }
 
     if (ctrl && input_code == 0x20) { // 0x20 = 32 = 'd'
+        // TODO: Implementar la funcion
         ascii_code = -1;
     }
 
