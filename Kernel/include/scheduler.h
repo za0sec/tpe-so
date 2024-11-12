@@ -10,7 +10,7 @@
 #define TOTAL_QUEUES 5
 #define HIGHEST_QUEUE 3
 #define AGING_THRESHOLD 100
-#define ASSIGN_QUANTUM(priority) ((priority + 1) * 3)
+#define ASSIGN_QUANTUM(priority) ((priority + 1) * 2)
 typedef uint64_t (*program_t)(uint64_t argc, char *argv[]);
 
 // Assembly functions
@@ -25,7 +25,7 @@ pcb_t get_next_process();
 void initProcessWrapper(program_t program, uint64_t argc, char **argv);
 
 // Process management
-void userspace_set_fd(uint64_t *fd_ids, int fd_count);
+void userspace_set_fd(int *fd_ids, int fd_count);
 uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]);
 uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);

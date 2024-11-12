@@ -69,6 +69,8 @@ char *strcpy(char *dest, const char *src);
 /* copies src's into dest*/
 char *strcpyForParam(char *dest, const char *src, const char *src2);
 
+uint64_t str_to_int(char *str);
+
 /*parses a num string into uint64_t*/
 uint64_t charToInt(char *str);
 
@@ -108,6 +110,8 @@ void welcome();
 void registerInfo();
 
 void cat();
+
+void intToStr(int value, char *str);
 
 uint64_t test_mm(uint64_t argc, char *argv[]);
 

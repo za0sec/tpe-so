@@ -116,14 +116,7 @@ void keyboard_handler(uint8_t keyPressed) {
 
     if (ctrl && input_code == 0x2E) { // 0x2E = 46 = 'c'
         ascii_code = 0;
-        uint64_t pid = kill_process_foreground();
-        if(pid > 0){
-            vDriver_prints("KILLED PROCESS: ", BLACK, WHITE);
-            char buffer[10];
-            intToStr(pid, buffer);
-            vDriver_prints(buffer, BLACK, WHITE);
-            vDriver_prints("\n\n", BLACK, WHITE);
-        }
+        kill_process_foreground();
     }
 
     open_file_t_keyboard->write(open_file_t_keyboard->resource, ascii_code);

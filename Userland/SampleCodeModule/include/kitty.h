@@ -15,7 +15,7 @@
 void kitty();
 
 void printHelp();
-void newLine();
+void process_line();
 void printLine(char c, int username);
 void checkLine(int *command_idx, int *after_pipe_idx);
 void cmd_undefined();
@@ -43,5 +43,6 @@ void cmd_test_sync();
 void cmd_ps();
 void cmd_cat();
 void cmd_loop();
+void cmd_kill();
 
 #endif

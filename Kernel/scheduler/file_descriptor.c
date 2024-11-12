@@ -10,8 +10,10 @@
 
 List *open_file_descriptors_list;
 uint64_t current_fd_id = 0;
+uint64_t stdin_fd_id;
 open_file_t *open_file_t_stdin;
 open_file_t *open_file_t_stdout;
+open_file_t *open_file_t_null;
 
 /*      SYSCALLS
 *   - openFD: recibe el id del FD, y lo agrega a la tabla de FD del proceso actual, llamando a fd_open_current_process
@@ -37,10 +39,12 @@ int compare_file_descriptors_id(open_file_t *fd, uint64_t id) {
 
 void init_file_descriptors(){
     open_file_descriptors_list = list_init(compare_file_descriptors);
-    uint64_t stdin_fd_id = pipe_create();
-    open_file_t_stdin = (open_file_t *)list_get(open_file_descriptors_list, stdin_fd_id);
+    stdin_fd_id = pipe_create();                                                                // ID: 0
+    open_file_t_stdin = (open_file_t *)list_get(open_file_descriptors_list, stdin_fd_id);       
 
-    open_file_t_stdout = fd_create(0, vDriverRead, vDriverWrite, vDriverClose);
+    open_file_t_stdout = fd_create(0, vDriverRead, vDriverWrite, vDriverClose);                 // ID: 1
+
+    open_file_t_null = fd_create(0, null_read, null_write, null_close);                         // ID: 2
 }
 
 char fd_read_current_process(uint64_t process_fd_index){
@@ -75,6 +79,18 @@ open_file_t * get_stdout_fd(){
     return open_file_t_stdout;
 }
 
+int null_close(){
+    return 1;
+}
+
+char null_read(void *resource){
+    block_process();
+}
+
+int null_write(void *resource, char data){
+    return 1;
+}
+
 open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
     open_file_t **fd_table = (open_file_t **)mem_alloc(sizeof(open_file_t *) * MAX_FD);
 
@@ -88,6 +104,8 @@ open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
     } else {
         if(fd_ids[0] == STDIN){
             fd_table[0] = get_stdin_fd();
+        } else if (fd_ids[0] == DEV_NULL){
+            fd_table[0] = open_file_t_null;
         } else {
             open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[0]);
             
@@ -100,6 +118,8 @@ open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
         }
         if(fd_ids[1] == STDOUT){
             fd_table[1] = get_stdout_fd();
+        } else if (fd_ids[1] == DEV_NULL){
+            fd_table[1] = open_file_t_null;
         } else {
             open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[1]);
             
@@ -164,7 +184,7 @@ uint64_t fd_open_current_process(uint64_t fd_id){
 }
 
 int fd_close(uint64_t fd_id){
-    if(fd_id < 2){
+    if(fd_id < 2 || fd_id == stdin_fd_id){
         return 0;
     }
 

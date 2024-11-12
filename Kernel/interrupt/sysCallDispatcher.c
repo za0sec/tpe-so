@@ -158,8 +158,8 @@ static uint64_t sched_create_process(int priority, program_t program, uint64_t a
     return userspace_create_process(priority, program, argc, argv);
 }
 
-static void sched_kill_process(uint64_t pid) {
-    kill_process(pid);
+static uint64_t sched_kill_process(uint64_t pid) {
+    return kill_process(pid);
 }
 
 static uint64_t sched_getPID() {
@@ -224,7 +224,7 @@ static uint64_t sched_create_process_foreground(int priority, program_t program,
     return userspace_create_process_foreground(priority, program, argc, argv);
 }
 
-static void sched_create_process_set_fd(uint64_t *fd_ids, uint64_t fd_count){
+static void sched_create_process_set_fd(int *fd_ids, uint64_t fd_count){
     return userspace_set_fd(fd_ids, fd_count);
 }
 

@@ -7,7 +7,12 @@
 
 #define STDIN 0
 #define STDOUT 1
+#define DEV_NULL 2
 #define MAX_FD 10
+
+int null_close();
+char null_read(void *resource);
+int null_write(void *resource, char data);
 
 /**
  * @brief Lee datos desde un descriptor de archivo del proceso actual.

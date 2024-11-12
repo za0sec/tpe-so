@@ -213,7 +213,7 @@ void halt(){
     }
 }
 
-void userspace_set_fd(uint64_t *fd_ids, int fd_count){
+void userspace_set_fd(int *fd_ids, int fd_count){
     if(fd_count < 2){
         userspace_process_creation_fd_ids[0] = 0;
         userspace_process_creation_fd_ids[1] = 1;
@@ -226,7 +226,7 @@ void userspace_set_fd(uint64_t *fd_ids, int fd_count){
         userspace_process_creation_fd_ids[fd_idx] = fd_ids[fd_idx];
     }
     for(; fd_idx < MAX_FD; fd_idx++){
-        userspace_process_creation_fd_ids[fd_idx] = -1;
+        userspace_process_creation_fd_ids[fd_idx] = 2;
     }
     userspace_process_creation_fd_count = fd_count;
 }
@@ -264,9 +264,9 @@ uint64_t kill_process_foreground(){
     if(foreground_pid < 0){
         return -1;
     }
-    kill_process(foreground_pid);
     uint64_t aux = foreground_pid;
-    foreground_pid = -1;
+    kill_process(foreground_pid);
+    foreground_pid = -2;
     return aux;
 }
 
@@ -288,8 +288,11 @@ uint64_t kill_process(uint64_t pid){
     pcb_t process;
     if(current_process.pid == pid){
         current_process.state = TERMINATED;
+        __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
+        return 1;
     } else if( (process = find_dequeue_priority(pid)).pid > 0 || (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
         mem_free(process.base_sp);
+        
         if(process.fd_table != NULL){
             for(int i = 0; i < MAX_FD; i++){
                 if(process.fd_table[i] != NULL){
@@ -302,8 +305,9 @@ uint64_t kill_process(uint64_t pid){
             unblock_process_from_queue(process.waiting_list);
         }
 
+        return 1;
     } else {
-        return -1;
+        return 0;
     }
 }
 

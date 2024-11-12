@@ -55,13 +55,14 @@ void printHelp()
 	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop};
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", "kill"};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, cmd_kill};
 
 void kitty()
 {
@@ -92,7 +93,9 @@ void printLine(char c, int username)
 	}
 	else if (c == NEW_LINE && username)
 	{
-		newLine();
+		process_line();
+		prints("\n", MAX_BUFF);
+		printPrompt();
 	}
 	else if (c == NEW_LINE && !username)
 	{
@@ -101,17 +104,20 @@ void printLine(char c, int username)
 	lastc = c;
 }
 
-void newLine(){
+void process_line(){
 	checkLine(&command_idx, &after_pipe_idx);
 
 	prints("\n", MAX_BUFF);
-	if (run_in_background){
-		run_in_background = 0;
-		create_process(0, commands_ptr[command_idx], 0, NULL, NULL, 0);
-	} else if (after_pipe[0] != '\0'){
+
+	if (command_idx && after_pipe_idx){
 		pipe_command();
-	} else {
-		(*commands_ptr[command_idx])();
+	} else if (command_idx && run_in_background){
+		run_in_background = 0;
+		uint64_t fd_table[2] = {2, 2};
+		create_process(0, commands_ptr[command_idx], 0, NULL, fd_table, 2);
+	} else if (command_idx){
+		uint64_t pid = create_process_foreground(0, commands_ptr[command_idx], 0, NULL, NULL, 0);
+		sys_wait_pid(pid);
 	}
 
 	for (int i = 0; line[i] != '\0'; i++){
@@ -124,9 +130,6 @@ void newLine(){
 
 	}
 	linePos = 0;
-
-	prints("\n", MAX_BUFF);
-	printPrompt();
 }
 
 void pipe_command(){
@@ -147,11 +150,6 @@ void printPrompt()
 	printcColor('>', PINK);
 }
 
-void cmd_loop(){
-	int pid = sys_create_process_foreground(0, &loop_test, 0, NULL);
-	sys_wait_pid(pid);
-}
-
 // separa comando de parametro
 void checkLine(int *command_idx, int *after_pipe_idx){
 	int i = 0;
@@ -165,13 +163,11 @@ void checkLine(int *command_idx, int *after_pipe_idx){
 
 	while (j < linePos){
 		j++;
-		if (line[j] = '&'){
+		if (line[j] == '&'){
 			run_in_background = 1;
 			break;
-		}
-		if (line[j] == '|'){
-			while (line[j] == ' ' || line[j] == '|')
-				j++;
+		} else if (line[j] == '|'){
+			while (line[j] == ' ' || line[j] == '|') j++;
 
 			while (j < linePos) {
 				after_pipe[m++] = line[j++];
@@ -198,7 +194,34 @@ void checkLine(int *command_idx, int *after_pipe_idx){
 			}
 		}
 	}
+}
 
+void cmd_loop(){
+	uint64_t pid = sys_getPID();
+	char * pid_str = sys_mem_alloc(10);
+	intToStr(pid, pid_str);
+	int flag = 0;
+	while (1) {
+    	if (flag && sys_getSeconds() % 5 == 0){
+			write_string("Hola, soy el proceso ", strlen("Hola, soy el proceso"));
+			write_string(pid_str, strlen(pid_str));
+			write_string("\n", strlen("\n"));
+			flag = 0;
+		} else {
+			flag = 1;
+		}
+  	}
+	sys_mem_free(pid_str);
+}
+
+void cmd_kill(){
+	char * pid_str = parameter;
+	uint64_t pid = str_to_int(parameter);
+	if (sys_kill(pid)){
+		write_string("Killed process with PID: ", MAX_BUFF);
+		write_string(pid_str, MAX_BUFF);
+		write_string("\n", MAX_BUFF);
+	}
 }
 
 void cmd_setusername()
@@ -233,8 +256,7 @@ void cmd_memtest()
 }
 
 void cmd_cat(){
-	uint64_t pid = create_process_foreground(0, &cat, 0, NULL, NULL, 0);
-	sys_wait_pid(pid);
+	cat();
 }
 
 void cmd_schetest()
@@ -393,18 +415,16 @@ void historyCaller(int direction){
 
 void cmd_ascii()
 {
-
 	int asciiIdx = random();
 	size_t splash_length = 0;
-	while (ascii[asciiIdx][splash_length] != NULL)
-	{
+	
+	while (ascii[asciiIdx][splash_length] != NULL){
 		splash_length++;
 	}
 
-	for (int i = 0; i < splash_length; i++)
-	{
-		printsColor(ascii[asciiIdx][i], MAX_BUFF, WHITE);
-		printc('\n');
+	for (int i = 0; i < splash_length; i++){
+		write_string(ascii[asciiIdx][i], MAX_BUFF);
+		write_char('\n');
 	}
 }
 
