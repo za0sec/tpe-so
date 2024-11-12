@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 #include "userlib.h"
-#define MAX_COMMAND 25
-#define MAX_ARGS 35
+#define MAX_COMMAND 256
+#define MAX_ARGS 29
 #define USERNAME_SIZE 16
 #define NEW_LINE '\n'
 #define BACKSPACE '\b'

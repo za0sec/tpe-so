@@ -154,7 +154,6 @@ void pipe_command(){
 	uint64_t fd_id = sys_pipe_create();
 	uint64_t first_pipe_fds[10] = {0};
 	uint64_t second_pipe_fds[10] = {0};
-	first_pipe_fds[0] = 0;
 	first_pipe_fds[1] = fd_id;
 	second_pipe_fds[0] = fd_id;
 	second_pipe_fds[1] = 1;
@@ -202,14 +201,14 @@ void checkLine(int *command_idx, int *after_pipe_idx){
 	strcpyForParam(commandHistory[commandIdxMax++], command, parameter);
 	commandIterator = commandIdxMax;
 
-	for (i = 0; i < MAX_ARGS; i++) {
-		if (i > 0 && strcmp(command, commands[i]) == 0) {
+	for (i = 1; i < MAX_ARGS; i++) {
+		if (strcmp(command, commands[i]) == 0) {
 			*command_idx = i;
 			if (after_pipe[0] == '\0') {
 				return;
 			}
-			for (int j = 0; j < MAX_ARGS; j++) {
-				if (j > 0 && strcmp(after_pipe, commands[j]) == 0) {
+			for (int j = 1; j < MAX_ARGS; j++) {
+				if (strcmp(after_pipe, commands[j]) == 0) {
 					*after_pipe_idx = j;
 					return;
 				}
@@ -438,18 +437,18 @@ void historyCaller(int direction){
 
 
 uint64_t cmd_ascii(uint64_t argc, char *argv[]){
-	int asciiIdx = random() % ASCII_ART_COUNT;
-	size_t splash_length = 0;
+	// int asciiIdx = random() % ASCII_ART_COUNT;
+	// size_t splash_length = 0;
 	
-	asciiIdx = asciiIdx % ASCII_ART_COUNT; 
-	while (ascii[asciiIdx][splash_length] != NULL && splash_length < MAX_ASCII_HEIGHT){
-		splash_length++;
-	}
+	// asciiIdx = asciiIdx % ASCII_ART_COUNT; 
+	// while (splash_length < MAX_ASCII_HEIGHT && ascii[asciiIdx][splash_length] != NULL){
+	// 	splash_length++;
+	// }
 
-	for (int i = 0; i < splash_length; i++){
-		write_string(ascii[asciiIdx][i], MAX_BUFF);
-		write_char('\n');
-	}
+	// for (int i = 0; i < splash_length; i++){
+	// 	write_string(ascii[asciiIdx][i], MAX_BUFF);
+	// 	write_char('\n');
+	// }
 	return 0;
 }
 
