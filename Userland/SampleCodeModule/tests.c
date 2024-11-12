@@ -37,8 +37,6 @@ typedef struct MM_rq {
   uint32_t size;
 } mm_rq;
 
-static int isVowel(char lett);
-
 int64_t prio[TOTAL_PROCESSES] = {LOWEST, MEDIUM, HIGHEST};
 
 uint64_t test_mm(uint64_t argc, char *argv[]) {
@@ -228,6 +226,8 @@ int64_t test_scheduler_processes() {
     char buffer[4096];
     sys_list_processes(buffer);
     prints(buffer, 4096);
+
+    return 0;
 }
 
 void test_prio() {
@@ -236,7 +236,7 @@ void test_prio() {
   uint64_t i;
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
-    pids[i] = create_process(0, &endless_loop, 0, argv, 0, 0);
+    pids[i] = create_process(0, (program_t)&endless_loop, 0, argv, 0, 0);
 
   bussy_wait(WAIT);
   prints("\nCHANGING PRIORITIES...\n", MAX_BUFF);
@@ -274,12 +274,7 @@ void test_prio() {
 
 
 
-int stringArrayLen(char **array) {
-	int len = 0;
-	while (*(array++) != NULL)
-		len++;
-	return len;
-}
+
 
 int global; // shared memory
 
@@ -341,9 +336,6 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
 uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
 
-  // char *argvpina[] = {"5", "-1", "1", NULL};
-  // create_process(0, &my_process_inc, 3, mem_alloc_args(argvpina), 27, 8);
-
   if (argc != 2) {
       return -1;
   }
@@ -380,32 +372,3 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   return 0;
 }
 
-void loop_test() {
-  while (1) {
-    if (sys_getSeconds() % 2 == 0) write_string("hola", strlen("hola"));
-  }
-}
-
-//////////////////////////////////////////////////////////////////////
-//                        FILTER                                    //
-//////////////////////////////////////////////////////////////////////
-
-
-void filter(){
-
-}
-
-static int isVowel(char lett){
-    if(lett == 'a' || lett == 'e' || lett == 'i' || lett == 'o' || lett == 'u' || lett == 'A' || lett == 'E' || lett == 'I' || lett == 'O' || lett == 'U'){
-        return 1;
-    }
-    return 0;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//                        WC                                            //
-//////////////////////////////////////////////////////////////////////////
-
-void wc(){
-
-}

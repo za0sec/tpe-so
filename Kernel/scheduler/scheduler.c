@@ -8,7 +8,7 @@
 #include <list.h>
 
 uint64_t currentPID = 0;
-uint64_t foreground_pid = -2;
+int foreground_pid = -2;
 pcb_t current_process;
 pcb_t halt_process;
 uint64_t userspace_process_creation_fd_ids[MAX_FD] = {0, 1};
@@ -264,10 +264,26 @@ uint64_t kill_process_foreground(){
     if(foreground_pid < 0){
         return -1;
     }
-    uint64_t aux = foreground_pid;
+    int aux = foreground_pid;
     kill_process(foreground_pid);
     foreground_pid = -2;
     return aux;
+}
+
+void send_EOF_foreground(){
+    if(foreground_pid < 0){
+        return;
+    }
+    pcb_t process;
+
+    if(current_process.pid == foreground_pid){
+        process = current_process;
+    } else if( (process = get_process_by_pid(foreground_pid)).pid < 0 ){
+        return;
+    } 
+
+    process.fd_table[1]->write(process.fd_table[1]->resource, -1);
+    process.fd_table[0]->write(process.fd_table[0]->resource, -1);
 }
 
 uint64_t set_priority(uint64_t pid, uint8_t priority){
@@ -279,6 +295,10 @@ uint64_t set_priority(uint64_t pid, uint8_t priority){
     } else if( (process = find_dequeue_priority(pid)).pid > 0 ){
         process.priority = priority;
         add_priority_queue(process);
+    } else if ( (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
+        process.priority = priority;
+        process.assigned_quantum = ASSIGN_QUANTUM(priority);
+        add(all_blocked_queue, process);
     } else {
         return -1;
     }
@@ -309,10 +329,6 @@ uint64_t kill_process(uint64_t pid){
     } else {
         return 0;
     }
-}
-
-uint64_t kill_process_terminal(char * pid){
-    return kill_process(atoi(pid));
 }
 
 void block_process_pid(uint64_t pid){
@@ -446,9 +462,8 @@ pcb_t find_dequeue_priority(uint64_t pid){
     return return_null_pcb();
 }
 
-
 int find_process_in_priority_queues(uint64_t pid) {
-    q_adt queues[] = {p0, p1, p2, p3};
+    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
     for (int i = 0; i < 4; i++) {
         if (find_process_in_queue(queues[i], pid)) {
             return 1;

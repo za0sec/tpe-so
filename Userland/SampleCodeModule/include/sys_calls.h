@@ -88,8 +88,10 @@ uint64_t sys_open_fd(uint64_t fd_id);
 
 uint64_t sys_close_fd(uint64_t fd_index);
 
-static uint64_t sys_pipe_create();
+uint64_t sys_pipe_create();
 
-static void sys_nice(uint64_t pid, uint8_t priority);
+void sys_nice(uint64_t pid, uint8_t priority);
+
+char * sys_mem_state();
 
 #endif

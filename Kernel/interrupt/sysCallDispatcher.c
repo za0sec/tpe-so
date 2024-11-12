@@ -162,7 +162,7 @@ static uint64_t sched_getPID() {
 }
 
 static char * sched_list_processes() {
-    list_processes();
+    return list_processes();
 }
 
 static void sched_block_process(uint64_t pid) {
@@ -231,6 +231,10 @@ static uint64_t sys_set_priority(uint64_t pid, uint8_t priority){
     return set_priority(pid, priority);
 }
 
+static char* sys_mem_state(){
+    return mem_state();
+}
+
 /* Arreglo de punteros a funciones (syscalls) */
 
 static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) = {
@@ -276,6 +280,7 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sched_create_process_set_fd,     // 38
     (void *)sys_pipe_create,        // 39
     (void *)sys_set_priority,       // 40
+    (void *)sys_mem_state               // 41
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

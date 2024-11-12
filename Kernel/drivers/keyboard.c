@@ -34,17 +34,17 @@ static const char keyMapU[] = {
 
 };
 
-static const char keyMapCAPS[] = {
+// static const char keyMapCAPS[] = {
 
-    0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-    '\b', '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']',
-    '\n', 0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '`',
-    0, '\\', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 0, '*',
-    0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, '-', 0, 0, 0, '+', 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0
+//     0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
+//     '\b', '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']',
+//     '\n', 0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '`',
+//     0, '\\', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 0, '*',
+//     0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//     0, 0, 0, 0, '-', 0, 0, 0, '+', 0, 0, 0, 0, 0,
+//     0, 0, 0, 0, 0, 0
 
-};
+// };
 
 static const char *const keyMap[] = {keyMapL, keyMapU};
 
@@ -110,13 +110,13 @@ void keyboard_handler(uint8_t keyPressed) {
     }
 
     if (ctrl && input_code == 0x20) { // 0x20 = 32 = 'd'
-        // TODO: Implementar la funcion
-        ascii_code = -1;
+        send_EOF_foreground();
+        return;
     }
 
     if (ctrl && input_code == 0x2E) { // 0x2E = 46 = 'c'
-        ascii_code = 0;
         kill_process_foreground();
+        return;
     }
 
     open_file_t_keyboard->write(open_file_t_keyboard->resource, ascii_code);

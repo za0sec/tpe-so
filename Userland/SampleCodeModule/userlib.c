@@ -127,6 +127,12 @@ void write_string(const char *str, int lenght)
 	}
 }
 
+void write_int(int integer, int length){
+	char myBuff[20];
+	intToStr(integer, myBuff);
+	write_string(myBuff, length);
+}
+
 void printsColor(const char *str, int lenght, Color color)
 {
 	for (int i = 0; i < lenght && str[i] != 0; i++)
@@ -497,7 +503,7 @@ void intToStr(int value, char *str)
 
 char *memcpy(char *dest, const char *src, uint64_t size){
 	int i = 0;
-	while (i < size, src[i] != 0)
+	while (i < size && src[i] != 0)
 	{
 		dest[i] = src[i];
 		i++;
@@ -506,7 +512,14 @@ char *memcpy(char *dest, const char *src, uint64_t size){
 	return dest;
 }
 
-static char **mem_alloc_args(char **args) {
+int stringArrayLen(char **array) {
+	int len = 0;
+	while (*(array++) != NULL)
+		len++;
+	return len;
+}
+
+char **mem_alloc_args(char **args) {
   int argc = stringArrayLen(args), totalArgsLen = 0;
   int argsLen[argc];
   
@@ -527,4 +540,11 @@ static char **mem_alloc_args(char **args) {
   
   newArgsArray[argc] = NULL;
   return newArgsArray;
+}
+
+int isVowel(char lett){
+    if(lett == 'a' || lett == 'e' || lett == 'i' || lett == 'o' || lett == 'u' || lett == 'A' || lett == 'E' || lett == 'I' || lett == 'O' || lett == 'U'){
+        return 1;
+    }
+    return 0;
 }

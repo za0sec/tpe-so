@@ -54,22 +54,28 @@ void printHelp()
 	printsColor("\n    >testsync           - test sync processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >kill               - kills a proccess with a specifies PID", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >loop               - prints short greeting and process PID", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >kill [PID]         - kill specified process", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >block [PID]        - block specified process", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >unblock [PID]      - block specified process", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >nice [PID] [prio]  - change a given's process priority", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >philo              - test philosophers", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >wc                 - counts the total amount of input lines", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >filter             - filt all input vocals", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >mem                - print memory state\n", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv",
                          "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest",
-                         "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", "kill", "philo", "wc", "filter"};
+                         "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", 
+						 "kill", "philo", "wc", "filter", "block", "unblock", "nice", "mem"};
 
 static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv,
                                           cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest,
-                                          cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, cmd_kill, cmd_philo, cmd_wc, cmd_filter};
+                                          cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, 
+										  cmd_kill, cmd_philo, cmd_wc, cmd_filter, cmd_block, cmd_unblock, cmd_nice, cmd_mem};
 
 void kitty(){
 	welcome();
@@ -154,11 +160,6 @@ void printPrompt()
 	prints(username, usernameLength);
 	prints(" $", MAX_BUFF);
 	printcColor('>', PINK);
-}
-
-void cmd_loop(){
-	int pid = sys_create_process_foreground(0, &loop_test, 0, NULL);
-	sys_wait_pid(pid);
 }
 
 // separa comando de parametro
@@ -363,7 +364,7 @@ void handleSpecialCommands(char c)
 
 void cmd_ps(){
 	char *processes = sys_list_processes();
-	prints(processes, MAX_BUFF);
+	write_string(processes, MAX_BUFF);
 	sys_mem_free(processes);
 }
 
@@ -445,11 +446,6 @@ void cmd_testschedulerprocesses()
 	}
 }
 
-void cmd_kill(){
-	sys_kill(atoi(parameter));
-}
-
-
 void cmd_test_sync() {
     char *argv[] = {"5", "1", 0};
 	uint64_t pid = create_process_foreground(0, &test_sync, 2, argv, 0, 0);	//Le paso 0 como fd_ids y fd_count, le pone stdin y stdout
@@ -515,9 +511,53 @@ void cmd_philo(){
 }
 
 void cmd_wc(){
-	create_process_foreground(0, &wc, 0, NULL, NULL, 0);
+	int lines = 0;
+	char c;
+	while((c = sys_read_fd(0)) != -1) {
+		write_char(c);
+		if (c == '\n'){
+			lines++;
+		}
+	}
+	write_string("Total lines: ", strlen("Total lines: "));
+	write_int(lines, MAX_BUFF);
+	write_char('\n');
 }
 
 void cmd_filter(){
-	create_process_foreground(0, &filter, 0, NULL, NULL, 0);
+	int vowels = 0;
+	for(int i = 0; i < strlen(parameter); i++){
+		vowels += isVowel(parameter[i]);
+	}
+	write_string("Total vowels: ", strlen("Total vowels: "));
+	write_int(vowels, MAX_BUFF);
+}
+
+void cmd_block(){
+	uint64_t pid = str_to_int(parameter);
+	sys_block(pid);
+}
+
+void cmd_unblock(){
+	uint64_t pid = str_to_int(parameter);
+	sys_unblock(pid);
+}
+
+void cmd_nice(){
+	// char * parameter2 = parameter;
+	// char secondParameter[20];
+	// int i, j=0;
+	// for(i=0; parameter2[i++] != ' ';){}
+	// for(; parameter2[i]; i++){
+	// 	secondParameter[j++] = parameter2[i];
+	// }
+	uint64_t pid = str_to_int(parameter);
+	// uint8_t priority = str_to_int(secondParameter);
+	sys_nice(pid, 0);
+}
+
+void cmd_mem(){
+	char *mem_state = sys_mem_state();
+	write_string(mem_state, strlen(mem_state));
+	sys_mem_free(mem_state);
 }

@@ -40,6 +40,7 @@ GLOBAL sys_close_fd
 GLOBAL sys_pipe_create
 GLOBAL sys_nice
 GLOBAL sys_kill_terminal
+GLOBAL sys_mem_state
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9
@@ -258,5 +259,10 @@ sys_pipe_create:
 
 sys_nice:
     mov rax, 0x28
+    int 80h
+    ret
+
+sys_mem_state:
+    mov rax, 0x29
     int 80h
     ret

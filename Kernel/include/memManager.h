@@ -17,4 +17,6 @@ void *mem_alloc(uint32_t s);
 
 void mem_free(void *ptr);
 
+char *mem_state();
+
 #endif // _MEM_MANAGER_H_

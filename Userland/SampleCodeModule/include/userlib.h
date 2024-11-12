@@ -40,6 +40,8 @@ void write_char(char c);
 
 void write_string(const char *str, int length);
 
+void write_int(int integer, int length);
+
 /* Prints a char in screen */
 void printc(char c);
 
@@ -117,6 +119,10 @@ uint64_t test_mm(uint64_t argc, char *argv[]);
 
 char *memcpy(char *dest, const char *src, uint64_t size);
 
-static char **mem_alloc_args(char **args);
+char **mem_alloc_args(char **args);
+
+int stringArrayLen(char **array);
+
+int isVowel(char lett);
 
 #endif /* _USERLIB_H_ */
