@@ -18,10 +18,10 @@ uint64_t userspace_process_creation_fd_count = 0;
 
 uint64_t aging_counter = 0;
 
-q_adt p0 = NULL;
-q_adt p1 = NULL;
-q_adt p2 = NULL;
-q_adt p3 = NULL;
+q_adt priority_0 = NULL;
+q_adt priority_1 = NULL;
+q_adt priority_2 = NULL;
+q_adt priority_3 = NULL;
 
 q_adt all_blocked_queue = NULL;                 // Procesos bloqueados mediante syscall
 q_adt blocked_read_queue = NULL;
@@ -35,10 +35,10 @@ void format_process_line(char *line, pcb_t *process);
 
 void init_scheduler(){
     current_semaphore = 0;
-    p0 = new_q();
-    p1 = new_q();
-    p2 = new_q();
-    p3 = new_q();
+    priority_0 = new_q();
+    priority_1 = new_q();
+    priority_2 = new_q();
+    priority_3 = new_q();
     all_blocked_queue = new_q();
     current_process = return_null_pcb();
     halt_process = create_process_halt();
@@ -88,7 +88,7 @@ uint64_t schedule(void *running_process_rsp){
             break;
 
         case TERMINATED:
-            if(current_process.pid == foreground_pid){
+            if(current_process.pid == foreground_pid && current_process.fd_table != NULL){  
                 current_process.fd_table[1]->write(current_process.fd_table[1]->resource, -1);
                 foreground_pid = -1;
             }
@@ -127,14 +127,14 @@ uint64_t schedule(void *running_process_rsp){
 
 pcb_t get_next_process(){
     pcb_t next_process;
-    if(has_next(p0)){
-        next_process = dequeue(p0);
-    } else if(has_next(p1)){
-        next_process = dequeue(p1);
-    } else if(has_next(p2)){
-        next_process = dequeue(p2);
-    } else if(has_next(p3)){
-        next_process = dequeue(p3);
+    if(has_next(priority_0)){
+        next_process = dequeue(priority_0);
+    } else if(has_next(priority_1)){
+        next_process = dequeue(priority_1);
+    } else if(has_next(priority_2)){
+        next_process = dequeue(priority_2);
+    } else if(has_next(priority_3)){
+        next_process = dequeue(priority_3);
     } else {
         return return_null_pcb();
     }
@@ -146,7 +146,7 @@ pcb_t get_current_process(){
 }
 
 void apply_aging(){
-    q_adt queues[] = {p0, p1, p2, p3};
+    q_adt queues[] = {priority_0, priority_1, priority_2, priority_3};
     pcb_t process;
     for (int i = 1; i <= HIGHEST_QUEUE; i++) {
         while (has_next(queues[i])) {
@@ -435,16 +435,16 @@ uint8_t add_priority_queue(pcb_t process){
     process.assigned_quantum = ASSIGN_QUANTUM(process.priority);  // Quantum segun nivel de prioridad
     switch(process.priority){
         case(0):
-            add(p0, process);
+            add(priority_0, process);
             break;
         case(1):
-            add(p1, process);
+            add(priority_1, process);
             break;
         case(2):
-            add(p2, process);
+            add(priority_2, process);
             break;
         case(3):
-            add(p3, process);
+            add(priority_3, process);
             break;
         default:
             return -1;
@@ -459,23 +459,23 @@ uint8_t add_priority_queue(pcb_t process){
  */
 pcb_t find_dequeue_priority(uint64_t pid){
     pcb_t process;
-    process = find_dequeue_pid(p0, pid);
+    process = find_dequeue_pid(priority_0, pid);
     if(process.pid > 0) return process;
 
-    process = find_dequeue_pid(p1, pid);
+    process = find_dequeue_pid(priority_1, pid);
     if(process.pid > 0) return process;
     
-    process = find_dequeue_pid(p2, pid);
+    process = find_dequeue_pid(priority_2, pid);
     if(process.pid > 0) return process;
 
-    process = find_dequeue_pid(p3, pid);
+    process = find_dequeue_pid(priority_3, pid);
     if(process.pid > 0) return process;
 
     return return_null_pcb();
 }
 
 int find_process_in_priority_queues(uint64_t pid) {
-    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    q_adt queues[] = {priority_0, priority_1, priority_2, priority_3, all_blocked_queue};
     for (int i = 0; i < 4; i++) {
         if (find_process_in_queue(queues[i], pid)) {
             return 1;
@@ -522,7 +522,7 @@ int is_valid_pid(uint64_t pid){
 }
 
 pcb_t get_process_by_pid(uint64_t pid) {
-    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue, NULL};
+    q_adt queues[] = {priority_0, priority_1, priority_2, priority_3, all_blocked_queue, NULL};
     pcb_t process;
 
     for(int i = 0; queues[i] != NULL; i++) {
@@ -556,7 +556,7 @@ char *list_processes() {
     // Calcula el tamaño necesario para almacenar todos los procesos
     int total_processes = 1; // Incluir el proceso actual
     pcb_t process;
-    q_adt queues[] = {p0, p1, p2, p3, all_blocked_queue};
+    q_adt queues[] = {priority_0, priority_1, priority_2, priority_3, all_blocked_queue};
     
     // Calcula la cantidad total de procesos en todas las colas
     for (int i = 0; i < TOTAL_QUEUES; i++) {
