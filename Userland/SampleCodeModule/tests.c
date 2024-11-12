@@ -37,6 +37,8 @@ typedef struct MM_rq {
   uint32_t size;
 } mm_rq;
 
+static int isVowel(char lett);
+
 int64_t prio[TOTAL_PROCESSES] = {LOWEST, MEDIUM, HIGHEST};
 
 uint64_t test_mm(uint64_t argc, char *argv[]) {
@@ -378,3 +380,32 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   return 0;
 }
 
+void loop_test() {
+  while (1) {
+    if (sys_getSeconds() % 2 == 0) write_string("hola", strlen("hola"));
+  }
+}
+
+//////////////////////////////////////////////////////////////////////
+//                        FILTER                                    //
+//////////////////////////////////////////////////////////////////////
+
+
+void filter(){
+
+}
+
+static int isVowel(char lett){
+    if(lett == 'a' || lett == 'e' || lett == 'i' || lett == 'o' || lett == 'u' || lett == 'A' || lett == 'E' || lett == 'I' || lett == 'O' || lett == 'U'){
+        return 1;
+    }
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//                        WC                                            //
+//////////////////////////////////////////////////////////////////////////
+
+void wc(){
+
+}

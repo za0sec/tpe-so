@@ -349,8 +349,7 @@ void drawRectangle(int x, int y, int x2, int y2, Color color)
 	}
 }
 
-void wait(uint64_t ms)
-{
+void wait(uint64_t ms){
 	sys_wait(ms);
 }
 

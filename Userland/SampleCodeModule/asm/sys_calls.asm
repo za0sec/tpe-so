@@ -39,6 +39,7 @@ GLOBAL sys_open_fd
 GLOBAL sys_close_fd
 GLOBAL sys_pipe_create
 GLOBAL sys_nice
+GLOBAL sys_kill_terminal
 
 ; Pasaje de parametros en C:
 ; %rdi %rsi %rdx %rcx %r8 %r9

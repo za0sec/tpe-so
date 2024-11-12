@@ -55,17 +55,23 @@ void printHelp()
 	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >kill               - kills a proccess with a specifies PID", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >philo              - test philosophers", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >wc                 - counts the total amount of input lines", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >filter             - filt all input vocals", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
+const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv",
+                         "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest",
+                         "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", "kill", "philo", "wc", "filter"};
 
-const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv", "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest", "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", "kill"};
-static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv, cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest, cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, cmd_kill};
+static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv,
+                                          cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest,
+                                          cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, cmd_kill, cmd_philo, cmd_wc, cmd_filter};
 
-void kitty()
-{
+void kitty(){
 	welcome();
 	char c;
 	printPrompt();
@@ -150,6 +156,11 @@ void printPrompt()
 	printcColor('>', PINK);
 }
 
+void cmd_loop(){
+	int pid = sys_create_process_foreground(0, &loop_test, 0, NULL);
+	sys_wait_pid(pid);
+}
+
 // separa comando de parametro
 void checkLine(int *command_idx, int *after_pipe_idx){
 	int i = 0;
@@ -227,14 +238,12 @@ void cmd_kill(){
 void cmd_setusername()
 {
 	int input_length = strlen(parameter);
-	if (input_length < 3 || input_length > USERNAME_SIZE)
-	{
+	if (input_length < 3 || input_length > USERNAME_SIZE){
 		prints("\nERROR: Username length must be between 3 and 16 characters long! Username not set.", MAX_BUFF);
 		return;
 	}
 	usernameLength = input_length;
-	for (int i = 0; i < input_length; i++)
-	{
+	for (int i = 0; i < input_length; i++){
 		username[i] = parameter[i];
 	}
 	prints("\nUsername set to ", MAX_BUFF);
@@ -436,6 +445,11 @@ void cmd_testschedulerprocesses()
 	}
 }
 
+void cmd_kill(){
+	sys_kill(atoi(parameter));
+}
+
+
 void cmd_test_sync() {
     char *argv[] = {"5", "1", 0};
 	uint64_t pid = create_process_foreground(0, &test_sync, 2, argv, 0, 0);	//Le paso 0 como fd_ids y fd_count, le pone stdin y stdout
@@ -494,4 +508,16 @@ void welcome()
 	printsColor("    Here's a list of available commands\n", MAX_BUFF, GREEN);
 	printHelp();
 	return 0;
+}
+
+void cmd_philo(){
+	init_philosophers(0, NULL);
+}
+
+void cmd_wc(){
+	create_process_foreground(0, &wc, 0, NULL, NULL, 0);
+}
+
+void cmd_filter(){
+	create_process_foreground(0, &filter, 0, NULL, NULL, 0);
 }

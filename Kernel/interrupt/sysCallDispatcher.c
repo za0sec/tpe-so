@@ -69,12 +69,7 @@ static void sys_drawRectangle(int x, int y, int x2, int y2, Color color) {
 }
 
 static void sys_wait(int ms) {
-    if (ms > 0) {
-        int start_ms = ms_elapsed();
-        do {
-            _hlt();
-        } while (ms_elapsed() - start_ms < ms);
-    }
+    timer_wait(ms);
 }
 
 static uint64_t sys_registerInfo(uint64_t registers[17]) {
@@ -188,15 +183,15 @@ static int sys_sem_open(char *sem_name, int init_value) {
     return sem_open(sem_name, init_value);
 }
 
-static void sys_sem_close(sem_t *sem) {
+static void sys_sem_close(char *sem) {
     sem_close(sem);
 }
 
-static void sys_sem_wait(sem_t *sem) {
+static void sys_sem_wait(char *sem) {
     sem_wait(sem);
 }
 
-static void sys_sem_post(sem_t *sem) {
+static void sys_sem_post(char *sem) {
     sem_post(sem);
 }
 
@@ -280,7 +275,7 @@ static uint64_t (*syscalls[])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) 
     (void *)sched_create_process_foreground, // 37
     (void *)sched_create_process_set_fd,     // 38
     (void *)sys_pipe_create,        // 39
-    (void *)sys_set_priority       // 40
+    (void *)sys_set_priority,       // 40
 };
 
 uint64_t syscall_dispatcher(uint64_t rdi, uint64_t rsi, uint64_t rdx, uint64_t r10, uint64_t r8, uint64_t rax) {

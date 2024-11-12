@@ -311,6 +311,10 @@ uint64_t kill_process(uint64_t pid){
     }
 }
 
+uint64_t kill_process_terminal(char * pid){
+    return kill_process(atoi(pid));
+}
+
 void block_process_pid(uint64_t pid){
     if(current_process.pid == pid){
         return;
