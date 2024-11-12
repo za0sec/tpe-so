@@ -28,7 +28,7 @@ const Color LIGHT_YELLOW = {0, 224, 255};
 const Color LIGHT_PINK = {0, 100, 244};
 const Color LIGHT_GREEN = {0, 255, 0};
 
-static char buffer[64] = {'0'};
+static char buffer[64] = {'0', 0};
 
 int scr_height;
 int scr_width;
@@ -256,7 +256,6 @@ uint64_t charToInt(char *str)
 
 	if (!isDigit(str[0]))
 	{
-		ret += str[0] - '0';
 		return -1;
 	}
 

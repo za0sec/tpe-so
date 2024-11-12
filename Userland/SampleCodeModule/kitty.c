@@ -27,6 +27,9 @@ static int commandIdxMax = 0;
 static int run_in_background = 0;
 uint64_t cursor_pid;
 
+#define ASCII_ART_COUNT 10
+#define MAX_ASCII_HEIGHT 10
+
 char usernameLength = 4;
 
 
@@ -39,7 +42,6 @@ int isDownArrow(char c);
 void printHelp()
 {
 	printsColor("\n\n    >'help' or 'ls'     - displays this shell information", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >setusername        - set username", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >whoami             - display current username", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >time               - display current time", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >clear              - clear the display", MAX_BUFF, LIGHT_BLUE);
@@ -48,7 +50,6 @@ void printHelp()
 	printsColor("\n    >registersinfo      - print current register values", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >zerodiv            - testeo divide by zero exception", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >invopcode          - testeo invalid op code exception", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >eliminator         - launch ELIMINATOR videogame", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >whoami             - prints current username", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >memtest            - test memory manager", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >schetest           - test scheduler", MAX_BUFF, LIGHT_BLUE);
@@ -201,14 +202,14 @@ void checkLine(int *command_idx, int *after_pipe_idx){
 	strcpyForParam(commandHistory[commandIdxMax++], command, parameter);
 	commandIterator = commandIdxMax;
 
-	for (i = 1; i < MAX_ARGS; i++) {
-		if (strcmp(command, commands[i]) == 0) {
+	for (i = 0; i < MAX_ARGS; i++) {
+		if (i > 0 && strcmp(command, commands[i]) == 0) {
 			*command_idx = i;
 			if (after_pipe[0] == '\0') {
 				return;
 			}
-			for (int j = 1; j < MAX_ARGS; j++) {
-				if (strcmp(after_pipe, commands[j]) == 0) {
+			for (int j = 0; j < MAX_ARGS; j++) {
+				if (j > 0 && strcmp(after_pipe, commands[j]) == 0) {
 					*after_pipe_idx = j;
 					return;
 				}
@@ -437,10 +438,11 @@ void historyCaller(int direction){
 
 
 uint64_t cmd_ascii(uint64_t argc, char *argv[]){
-	int asciiIdx = random();
+	int asciiIdx = random() % ASCII_ART_COUNT;
 	size_t splash_length = 0;
 	
-	while (ascii[asciiIdx][splash_length] != NULL){
+	asciiIdx = asciiIdx % ASCII_ART_COUNT; 
+	while (ascii[asciiIdx][splash_length] != NULL && splash_length < MAX_ASCII_HEIGHT){
 		splash_length++;
 	}
 
@@ -469,8 +471,12 @@ uint64_t cmd_test_sync(uint64_t argc, char *argv[]) {
 
 void newLineUsername()
 {
-	strcpy(username, line);
-	usernameLength = strlen(username);
+	int i;
+	for (i = 0; i < USERNAME_SIZE-1 && line[i] != '\0'; i++) {
+		username[i] = line[i];
+	}
+	username[i] = '\0';
+	usernameLength = i;
 
 	for (int i = 0; line[i] != '\0'; i++)
 	{

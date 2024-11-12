@@ -51,12 +51,6 @@ O bien:
 | `help`o `ls` | Muestra información sobre estos comandos |
 | ---------------- | ----------------------------------------- |
 
-| `setusername` | Configura el nombre de usuario |
-| --------------- | ------------------------------ |
-
-| `whoami` | Muestra el nombre de usuario actual |
-| ---------- | ----------------------------------- |
-
 | `time` | Muestra la hora actual |
 | -------- | ---------------------- |
 
@@ -77,9 +71,6 @@ O bien:
 
 | `invopcode` | Prueba la excepción de código de operación inválido |
 | ------------- | ------------------------------------------------------- |
-
-| `eliminator` | Lanza el videojuego ELIMINATOR |
-| -------------- | ------------------------------ |
 
 | `memtest` | Prueba el gestor de memoria |
 | ----------- | --------------------------- |

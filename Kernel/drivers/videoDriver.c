@@ -105,9 +105,7 @@ uint16_t getRealCharHeight() {
 uint16_t cursorX = 0;
 uint16_t cursorY = 0;
 
-static char buffer[64];
-
-buffer[0] = '0';
+static char buffer[64] = {'0', 0}; 
 
 void vDriver_prints(const char *str, Color fnt, Color bgd){
     for (int i = 0 ; str[i] != '\0'; i++ ){
