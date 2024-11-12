@@ -13,11 +13,21 @@ void *semaphores[MAX_PHILOSOPHERS]; // Semáforos para cada filósofo
 uint64_t init_philosophers(uint64_t argc, char *argv[]) {
     // Inicialización de semáforos y filósofos
     mutex = sys_sem_open("mutex", 1);
+    if (mutex == NULL) {
+        write_string("Failed to initialize mutex semaphore.\n", MAX_BUFF);
+        return -1;
+    }
 
     for (int i = 0; i < num_philosophers; i++) {
         char sem_name[20];
         intToStr(i, sem_name);
         semaphores[i] = sys_sem_open(sem_name, 0);
+        if (semaphores[i] == NULL) {
+            write_string("Failed to initialize semaphore for philosopher ", MAX_BUFF);
+            printDec(i);
+            write_string("\n", 1);
+            return -1;
+        }
 
         philosophers[i].id = i;
         philosophers[i].state = THINKING;
@@ -69,12 +79,12 @@ void philosopher_function(uint64_t argc, char *argv[]) {
 
 void think(int id) {
     // Simular pensando
-        while (sys_getSeconds() % 2 != 0);
+    while (sys_getSeconds() % 2 != 0);
 }
 
 void eat(int id) {
     // Simular comiendo
-        while (sys_getSeconds() % 2 != 0);
+    while (sys_getSeconds() % 2 != 0);
 }
 
 void take_forks(int id) {
