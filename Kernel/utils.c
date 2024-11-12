@@ -100,3 +100,30 @@ void intToStr(int value, char *str)
         str[index - i - 1] = temp;
     }
 }
+
+
+int atoi(const char *str){
+	int result = 0;
+	int sign = 1;
+	int i = 0;
+
+	// Handle leading whitespace
+	while (str[i] == ' ')
+	{
+		i++;
+	}
+
+	// Handle sign
+	if (str[i] == '-' || str[i] == '+')
+	{
+		sign = (str[i++] == '-') ? -1 : 1;
+	}
+
+	// Convert digits to integer
+	while (str[i] >= '0' && str[i] <= '9')
+	{
+		result = result * 10 + (str[i++] - '0');
+	}
+
+	return sign * result;
+}

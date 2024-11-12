@@ -56,7 +56,7 @@ uint64_t create_process(int priority, program_t program, uint64_t argc, char *ar
 		fd_ids_array = NULL;
 		fd_count = 0;
 	} else {
-		int *fd_ids_array = sys_mem_alloc(sizeof(int) * 10);
+		fd_ids_array = sys_mem_alloc(sizeof(int) * 10);
 		for(int i = 0; i < fd_count; i++){
 			fd_ids_array[i] = fd_ids[i];
 		}
@@ -335,8 +335,7 @@ void drawRectangle(int x, int y, int x2, int y2, Color color)
 	}
 }
 
-void wait(uint64_t ms)
-{
+void wait(uint64_t ms){
 	sys_wait(ms);
 }
 
@@ -440,4 +439,43 @@ void cat(){
 	while((c = sys_read_fd(0)) != -1) {
 		write_char(c);
 	}
+}
+
+void intToStr(int value, char *str)
+{
+    int index = 0;
+    int isNegative = 0;
+
+    if (value == 0)
+    {
+        str[index++] = '0';
+        str[index] = '\0';
+        return;
+    }
+
+    if (value < 0)
+    {
+        isNegative = 1;
+        value = -value;
+    }
+
+    while (value > 0)
+    {
+        str[index++] = (value % 10) + '0';
+        value /= 10;
+    }
+
+    if (isNegative)
+    {
+        str[index++] = '-';
+    }
+
+    str[index] = '\0';
+
+    for (int i = 0; i < index / 2; i++)
+    {
+        char temp = str[i];
+        str[i] = str[index - i - 1];
+        str[index - i - 1] = temp;
+    }
 }
