@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <scheduler.h>
 #include <memManager.h>
 #include <pcb_queue.h>
@@ -28,6 +30,9 @@ q_adt blocked_semaphore_queue = NULL;
 int current_semaphore = 0;
 uint8_t mutex_lock = 1;
 
+void apply_aging();
+void format_process_line(char *line, pcb_t *process);
+
 void init_scheduler(){
     current_semaphore = 0;
     p0 = new_q();
@@ -52,7 +57,7 @@ uint64_t schedule(void *running_process_rsp){
             current_process.used_quantum++;
 
             if(current_process.used_quantum < current_process.assigned_quantum){
-                return current_process.rsp;
+                return (uint64_t)current_process.rsp;
             } else {
                 current_process.state = READY;
                 current_process.priority = (current_process.priority + 1) > HIGHEST_QUEUE ? HIGHEST_QUEUE : current_process.priority + 1;
@@ -117,7 +122,7 @@ uint64_t schedule(void *running_process_rsp){
         current_process = halt_process;
     }
 
-    return current_process.rsp;
+    return (uint64_t)current_process.rsp;
 }
 
 pcb_t get_next_process(){
@@ -162,20 +167,20 @@ uint64_t userspace_create_process(int priority, program_t program, uint64_t argc
 }
 
 // Retorna -1 por error
-uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){
+uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count){
     return create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
 }
 
 // Si le pasas fd_count < 2, se le asignan los fd de stdin y stdout!
 // Retorna -1 por error
-uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count){    
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count){    
     void *base_pointer = mem_alloc(STACK_SIZE);
     
     if(base_pointer == NULL){
         return -1;
     }
 
-    void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, program, argc, argv);
+    void * stack_pointer = fill_stack((uintptr_t)base_pointer, initProcessWrapper, program, argc, argv);
 
     q_adt waiting_list = new_q();
     
@@ -239,7 +244,7 @@ pcb_t create_process_halt(){
         return return_null_pcb();
     }
 
-    void * stack_pointer = fill_stack(base_pointer, initProcessWrapper, &halt, 0, NULL);
+    void * stack_pointer = fill_stack((uintptr_t)base_pointer, initProcessWrapper, (program_t)halt, 0, NULL);
 
     pcb_t new_process = {
                         currentPID++,       //pid
@@ -302,6 +307,7 @@ uint64_t set_priority(uint64_t pid, uint8_t priority){
     } else {
         return -1;
     }
+    return 0;
 }
 
 uint64_t kill_process(uint64_t pid){
@@ -329,6 +335,7 @@ uint64_t kill_process(uint64_t pid){
     } else {
         return 0;
     }
+    return 0;
 }
 
 void block_process_pid(uint64_t pid){
@@ -350,12 +357,14 @@ void block_process_pid(uint64_t pid){
 uint64_t block_process(){
     current_process.state = BLOCKED;
     __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
+    return 0;
 }
 
 uint64_t block_current_process_to_queue(q_adt blocked_queue){
     current_process.state = BLOCKED;
     add(blocked_queue, current_process);
     __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
+    return 0;
 }
 
 /**
@@ -404,6 +413,7 @@ uint64_t unblock_process_from_queue(q_adt src){
 
     process.state = READY;
     add_priority_queue(process);
+    return 0;
 }
 
 uint64_t unblock_process(uint64_t pid){
@@ -414,6 +424,7 @@ uint64_t unblock_process(uint64_t pid){
     } else {
         return -1;
     }
+    return 0;
 }
 
 void yield(){
@@ -438,6 +449,7 @@ uint8_t add_priority_queue(pcb_t process){
         default:
             return -1;
     }
+    return 0;
 }
 
 /**
@@ -600,7 +612,7 @@ void format_process_line(char *line, pcb_t *process) {
     // Convierte los enteros a cadena
     intToStr(process->pid, pid_str);
     intToStr(process->priority, priority_str);
-    intToStr(process->base_sp, base_pointer_str);
+    intToStr((int)(uintptr_t)process->base_sp, base_pointer_str);
 
     // Determina la cadena de estado
     switch (process->state) {

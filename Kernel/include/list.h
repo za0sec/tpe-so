@@ -13,11 +13,11 @@ typedef struct ListNode {
 typedef struct {
     ListNode *head;
     uint64_t size;
-    int (*compare)(const void *, const void *); // Puntero a la función de comparación
+    int (*compare)(void *, void *); // Puntero a la función de comparación
 } List;
 
 // Inicializa una nueva lista, recibiendo un puntero a la función de comparación
-List *list_init(int (*compare)(const void *, const void *));
+List *list_init(int (*compare)(void *, void *));
 
 // Agrega un elemento al final de la lista
 void list_add(List *list, void *data);
@@ -28,7 +28,7 @@ int list_remove(List *list, void *data);
 
 // Obtiene el primer elemento que coincide con `data` utilizando `compare`
 // Devuelve NULL si no se encontró
-void *list_get(List *list, void *data);
+void *list_get(List *list, void * data);
 
 // Libera la memoria de la lista
 void list_free(List *list);

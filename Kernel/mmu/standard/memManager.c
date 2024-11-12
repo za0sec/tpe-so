@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
     // No alignment
 #include <memManager.h>
 #include <utils.h>
@@ -7,7 +9,7 @@ int size, current;
 void * free_ptrs[CHUNK_COUNT];
 
 void mem_init(void *ptr, int s){
-    start = ALIGN_POINTER(ptr, WORD_ALIGN);
+    start = (void *)ALIGN_POINTER(ptr, WORD_ALIGN);
     size = s;
     current = 0;
     for(int i = 0; i < CHUNK_COUNT; i++){

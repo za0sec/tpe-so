@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <scheduler.h>
 #include <semaphore.h>
 #include <utils.h>
@@ -5,7 +7,7 @@
 
 List *sem_list;
 
-int compare_semaphores(const void *this, const void *other_semaphore_name) {
+int compare_semaphores(void *this, void *other_semaphore_name) {
     const sem_t *sem_a = (const sem_t *)this;
     const char *sem_b_name = (char*)other_semaphore_name;
     return strcmp(sem_a->name, sem_b_name);
@@ -36,7 +38,7 @@ int add_sem(char * sem_name, int initialValue) {
     }
     strcpy(new_sem->name, sem_name, strlen(sem_name));
     new_sem->value = initialValue;
-    new_sem->sem_lock = 1;
+    new_sem->sem_lock = (lock_t)1;
     new_sem->blocked_queue = new_q();
     new_sem->count_processes = 1;
     list_add(sem_list, new_sem);
@@ -74,9 +76,9 @@ void sem_close(char * sem_name){
         return;
     }
 
-    acquire(&(aux->sem_lock));
+    acquire(aux->sem_lock);
     (aux->count_processes)--;
-    release(&(aux->sem_lock));
+    release(aux->sem_lock);
     
     if(aux->count_processes == 0){
         remove_sem(sem_name);
@@ -93,10 +95,10 @@ void sem_wait(char * sem_name){
         return;
     }
 
-    acquire(&(sem_node->sem_lock));
+    acquire(sem_node->sem_lock);
     uint8_t need_to_block = sem_node->value <= 0;
     (sem_node->value)--;
-    release(&(sem_node->sem_lock));
+    release(sem_node->sem_lock);
 
     if(need_to_block){
         block_current_process_to_queue(sem_node->blocked_queue);
@@ -110,10 +112,10 @@ int64_t sem_post(char *sem_name){
         return 0;
     }
 
-    acquire(&(sem_node->sem_lock));
+    acquire(sem_node->sem_lock);
     uint8_t need_to_unblock = sem_node->value < 0;
     (sem_node->value)++;
-    release(&(sem_node->sem_lock));
+    release(sem_node->sem_lock);
     
     // Desbloqueo el primer proceso bloqueado en la cola del semaforo.
     if (need_to_unblock){

@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <videoDriver.h>
 #include <keyboard.h>
 #include <lib.h>
@@ -7,6 +9,7 @@
 #include <stdint.h>
 #include <scheduler.h>
 #include <semaphore.h>
+#include <pipe.h>
 
 #define STDIN 0
 #define STDOUT 1

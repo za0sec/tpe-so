@@ -9,10 +9,8 @@ typedef struct phylo {
 } Phylo;
 
 #define MUTEX_ARRAY "access_array"
-static Phylo philosophers[MAX_PHYLOS];
 
 #define MUTEX_THINKERS "thinkers_mutex"
-static int thinkers;    
 
 void init_philosophers(uint64_t argc, char *argv[]);
 uint64_t controllers_handler(uint64_t argc, char *argv[]);

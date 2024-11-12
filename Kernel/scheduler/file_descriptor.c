@@ -1,3 +1,5 @@
+    // This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <scheduler.h>
 #include <stdlib.h>
 #include <list.h>
@@ -7,6 +9,7 @@
 #include <open_file_t.h>
 #include <file_descriptor.h>
 #include <videoDriver.h>
+#include <pipe.h>
 
 List *open_file_descriptors_list;
 uint64_t current_fd_id = 0;
@@ -29,8 +32,8 @@ open_file_t *open_file_t_null;
 
 int compare_file_descriptors(void *this_open_file_t, void *other_fd_id) {
     open_file_t *fd_a = (open_file_t *)this_open_file_t;
-    uint64_t fd_b_id = (uint64_t)other_fd_id;
-    return fd_a->id - fd_b_id;
+    uint64_t *fd_b_id = (uint64_t *)other_fd_id;
+    return fd_a->id - *fd_b_id;
 }
 
 int compare_file_descriptors_id(open_file_t *fd, uint64_t id) {
@@ -40,11 +43,16 @@ int compare_file_descriptors_id(open_file_t *fd, uint64_t id) {
 void init_file_descriptors(){
     open_file_descriptors_list = list_init(compare_file_descriptors);
     stdin_fd_id = pipe_create();                                                                // ID: 0
-    open_file_t_stdin = (open_file_t *)list_get(open_file_descriptors_list, stdin_fd_id);       
+    uint64_t *id_ptr = &stdin_fd_id;
+    open_file_t_stdin = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);       
 
-    open_file_t_stdout = fd_create(0, vDriverRead, vDriverWrite, vDriverClose);                 // ID: 1
+    open_file_t_stdout = fd_create(0, (char (*)(void *))vDriverRead, 
+                                    (int (*)(void *, char))vDriverWrite, 
+                                    (int (*)())vDriverClose);                 // ID: 1
 
-    open_file_t_null = fd_create(0, null_read, null_write, null_close);                         // ID: 2
+    open_file_t_null = fd_create(0, (char (*)(void *))null_read,
+                                  (int (*)(void *, char))null_write, 
+                                  (int (*)())null_close);                         // ID: 2
 }
 
 char fd_read_current_process(uint64_t process_fd_index){
@@ -85,13 +93,14 @@ int null_close(){
 
 char null_read(void *resource){
     block_process();
+    return 0;
 }
 
 int null_write(void *resource, char data){
     return 1;
 }
 
-open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
+open_file_t ** fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
     open_file_t **fd_table = (open_file_t **)mem_alloc(sizeof(open_file_t *) * MAX_FD);
 
     for(int i = 0; i < MAX_FD; i++){
@@ -107,7 +116,8 @@ open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
         } else if (fd_ids[0] == DEV_NULL){
             fd_table[0] = open_file_t_null;
         } else {
-            open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[0]);
+            uint64_t *id_ptr = &fd_ids[0];
+            open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);
             
             if(fd == NULL){
                 goto undo;
@@ -121,7 +131,8 @@ open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
         } else if (fd_ids[1] == DEV_NULL){
             fd_table[1] = open_file_t_null;
         } else {
-            open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[1]);
+            uint64_t *id_ptr = &fd_ids[1];
+            open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);
             
             if(fd == NULL){
                 goto undo;
@@ -133,7 +144,8 @@ open_file_t * fd_open_fd_table(uint64_t fd_ids[MAX_FD], int fd_count){
     } 
 
     for(int i = 2; i < fd_count; i++){
-        open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, fd_ids[i]);
+        uint64_t *id_ptr = &fd_ids[i];
+        open_file_t *fd = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);
             
         if(fd == NULL){
             goto undo;
@@ -158,10 +170,11 @@ uint64_t fd_open_current_process(uint64_t fd_id){
     pcb_t current_process = get_current_process();
 
     // Veo si existe el FD con el fd_id
-    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, fd_id);
+    uint64_t *id_ptr = &fd_id;
+    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);
 
     if(found_fd == NULL){
-        return NULL;
+        return -1;
     }
 
     //Chequeo si ya lo tenia abierto
@@ -188,7 +201,8 @@ int fd_close(uint64_t fd_id){
         return 0;
     }
 
-    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, fd_id);
+    uint64_t *id_ptr = &fd_id;
+    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);
     
     if(found_fd == NULL){
         return 0;
@@ -217,12 +231,13 @@ int fd_close_current_process(uint64_t fd_index){
 }
 
 void fd_remove(uint64_t id){
-    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id);
+    uint64_t *id_ptr = &id;
+    open_file_t *found_fd = (open_file_t *)list_get(open_file_descriptors_list, id_ptr);
     list_remove(open_file_descriptors_list, found_fd);
     mem_free(found_fd);
 }
 
-uint64_t fd_add(void *resource, char (*read), int (*write)(char data), int (*close)){
+uint64_t fd_add(void *resource, char (*read)(void *), int (*write)(void *, char), int (*close)()){
     open_file_t *new_fd = fd_create(resource, read, write, close);
 
     if(new_fd == NULL){

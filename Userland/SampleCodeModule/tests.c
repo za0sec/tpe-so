@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <userlib.h>
 #include <test_util.h>
 #include <sys_calls.h>
@@ -9,8 +11,6 @@
 
 #define SEM_ID "sem"
 #define TOTAL_PAIR_PROCESSES 2
-
-#define NULL ((void*)0)
 
 
 #define MAX_BLOCKS 128
@@ -107,7 +107,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
       // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
-      p_rqs[rq].pid = create_process(0, &endless_loop, 0, argvAux, 0, 0);
+      p_rqs[rq].pid = create_process(0, (program_t)endless_loop, 0, argvAux, 0, 0);
 
       if (p_rqs[rq].pid == -1) {
         prints("test_processes: ERROR creating process\n", MAX_BUFF);
@@ -201,7 +201,6 @@ void test_process(int n){
 int64_t test_scheduler_processes() {
   uint8_t rq;
   uint8_t alive = 0;
-  uint8_t action;
   uint64_t max_processes = 5;
 
   p_rq p_rqs[max_processes];
@@ -210,8 +209,8 @@ int64_t test_scheduler_processes() {
     // Create max_processes processes
     for (rq = 0; rq < max_processes; rq++) {
       // p_rqs[rq].pid = sys_create_process("endless_loop", 0, 0, argvAux);
-      char *argv[] = {rq};
-      p_rqs[rq].pid = create_process(0, &test_process, 0, argv, 0, 0);
+      char *argv[] = {(char*)(uint64_t)rq};
+      p_rqs[rq].pid = create_process(0, (program_t)test_process, 0, argv, 0, 0);
 
       if (p_rqs[rq].pid == -1) {
         prints("ERROR creating process\n", MAX_BUFF);
@@ -311,7 +310,7 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
   for (i = 0; i < n; i++) {
     if (use_sem)
       sys_sem_wait(SEM_ID);
-    slowInc(&global, inc);
+    slowInc((int64_t *)&global, inc);
     write_string("Process: ", strlen("Process: "));
     printDec(sys_getPID());
     write_string(" Global: ", strlen(" Global: "));

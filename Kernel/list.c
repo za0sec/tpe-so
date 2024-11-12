@@ -1,9 +1,11 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <list.h>
 #include <stdlib.h>         // necesito NULL jiji
 #include <memManager.h>
 
 // Inicializa una nueva lista y asigna la función de comparación
-List *list_init(int (*compare)(const void *, const void *)) {
+List *list_init(int (*compare)(void *, void *)) {
     List *list = (List *)mem_alloc(sizeof(List));
     if (list == NULL) {
         return NULL;

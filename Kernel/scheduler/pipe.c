@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <semaphore.h>
 #include <list.h>
 #include <stdlib.h>         // NULL
@@ -5,12 +7,13 @@
 #include <memManager.h>
 #include <pipe.h>
 #include <file_descriptor.h>
+#include <utils.h>
 
 uint16_t current_id = 0;
 List *pipe_list;
 
 int init_pipes(){
-    pipe_list = list_init(compare_pipes);
+    pipe_list = list_init((int (*)(void *, void *))compare_pipes);
     if (pipe_list == NULL) {
         return -1;
     }
@@ -25,7 +28,10 @@ uint64_t pipe_create(){
         return -1;
     }
 
-    uint64_t pipe_fd_id = fd_add(new_pipe->id, pipe_read, pipe_write, pipe_destroy);
+    uint64_t pipe_fd_id = fd_add((void *)(uintptr_t)new_pipe->id, 
+                                (char (*)(void *))pipe_read,
+                                (int (*)(void *, char))pipe_write, 
+                                (int (*)())pipe_destroy);
 
     if(pipe_fd_id == -1){
         pipe_free(new_pipe);
@@ -55,7 +61,7 @@ char pipe_read(uint16_t pipe_id){
     pipe target_pipe = {.id = pipe_id};
     pipe *found_pipe = (pipe *)list_get(pipe_list, &target_pipe);
     if(found_pipe == NULL){
-        return NULL;
+        return '\0';
     }
 
     sem_wait(found_pipe->sem_name_data_available);
@@ -198,8 +204,7 @@ void pipe_writer2() {
 void pipe_reader() {
     while (1) {
         char c = pipe_read(PIPE_ID);
-        vDriver_print(c, WHITE, BLACK); // Imprime el char leído en pantalla\
-
+        vDriver_print(c, WHITE, BLACK); // Imprime el char leído en pantalla
         if (c != -1) { // -1 indica que la lectura falló o que el pipe no existe
             status_reader = 1; // Lectura exitosa
         } else {

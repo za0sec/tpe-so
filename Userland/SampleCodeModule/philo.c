@@ -1,8 +1,14 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys_calls.h>
 #include <userlib.h>
 #include <philo.h>
+
+static Phylo philosophers[MAX_PHYLOS];
+
+static int thinkers;    
 
 void sleep(uint64_t ms) {
     sys_wait(ms);
@@ -14,7 +20,7 @@ void init_philosophers(uint64_t argc, char *argv[]) {
     sys_sem_open(MUTEX_THINKERS, 1);
 
     // Crear proceso controlador
-    uint64_t controller_pid = sys_create_process_foreground(0, controllers_handler, 0, NULL);
+    sys_create_process_foreground(0, &controllers_handler, 0, NULL);
 
     thinkers = INITIAL_THINKERS;
 
@@ -61,7 +67,7 @@ void think(int phy) {
     philosophers[phy].state = 0;
     reprint();
     sys_sem_post(MUTEX_ARRAY);
-    sleep(GetUniform(phy));
+    // sleep(GetUniform(phy));
 }
 
 void eat(int phy) {
@@ -69,7 +75,7 @@ void eat(int phy) {
     philosophers[phy].state = 1;
     reprint();
     sys_sem_post(MUTEX_ARRAY);
-    sleep(GetUniform(phy));
+    // sleep(GetUniform(phy));
 }
 
 void add_philosopher(int phy) {
@@ -82,7 +88,7 @@ void add_philosopher(int phy) {
 
     // Crear proceso filósofo
     char *philo_argv[] = { indexStr, NULL };
-    philosophers[phy].pid = sys_create_process_foreground(0, phyloProcess, 1, philo_argv);
+    philosophers[phy].pid = sys_create_process_foreground(0, (program_t)phyloProcess, 1, philo_argv);
 }
 
 uint64_t controllers_handler(uint64_t argc, char *argv[]) {

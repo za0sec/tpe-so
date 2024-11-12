@@ -62,6 +62,6 @@ int64_t sem_post(char *sem_name);
  * @param b El segundo semáforo a comparar.
  * @return int Retorna el resultado de la comparación de cadenas.
  */
-int compare_semaphores(const void *a, const void *b);
+int compare_semaphores(void *a, void *b);
 
 #endif // _SEM_H
