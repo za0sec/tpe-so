@@ -115,4 +115,8 @@ void intToStr(int value, char *str);
 
 uint64_t test_mm(uint64_t argc, char *argv[]);
 
+char *memcpy(char *dest, const char *src, uint64_t size);
+
+static char **mem_alloc_args(char **args);
+
 #endif /* _USERLIB_H_ */

@@ -45,6 +45,8 @@ uint64_t create_process_foreground(int priority, program_t program, uint64_t arg
 		}
 	}
 
+	
+
 	sys_create_process_set_fd(fd_ids_array, fd_count);
 
 	uint64_t pid = sys_create_process_foreground(priority, program, argc, argv);
@@ -492,4 +494,38 @@ void intToStr(int value, char *str)
         str[i] = str[index - i - 1];
         str[index - i - 1] = temp;
     }
+}
+
+char *memcpy(char *dest, const char *src, uint64_t size){
+	int i = 0;
+	while (i < size, src[i] != 0)
+	{
+		dest[i] = src[i];
+		i++;
+	}
+	dest[i] = 0;
+	return dest;
+}
+
+static char **mem_alloc_args(char **args) {
+  int argc = stringArrayLen(args), totalArgsLen = 0;
+  int argsLen[argc];
+  
+  for (int i = 0; i < argc; i++) {
+    argsLen[i] = strlen(args[i]) + 1;
+    totalArgsLen += argsLen[i];
+  }
+  
+  char **newArgsArray = (char **) sys_mem_alloc(sizeof(char *) * (argc + 1) + totalArgsLen);
+  
+  char *charPosition = (char *) (newArgsArray + argc + 1);
+  
+  for (int i = 0; i < argc; i++) {
+    newArgsArray[i] = charPosition; 
+    memcpy(charPosition, args[i], argsLen[i]);
+    charPosition += argsLen[i];
+  }
+  
+  newArgsArray[argc] = NULL;
+  return newArgsArray;
 }
