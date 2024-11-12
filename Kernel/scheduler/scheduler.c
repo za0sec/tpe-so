@@ -290,6 +290,18 @@ uint64_t kill_process(uint64_t pid){
         current_process.state = TERMINATED;
     } else if( (process = find_dequeue_priority(pid)).pid > 0 || (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
         mem_free(process.base_sp);
+        if(process.fd_table != NULL){
+            for(int i = 0; i < MAX_FD; i++){
+                if(process.fd_table[i] != NULL){
+                    fd_close(process.fd_table[i]->id);
+                }
+            }
+        }
+    
+        while(has_next(process.waiting_list)){
+            unblock_process_from_queue(process.waiting_list);
+        }
+
     } else {
         return -1;
     }

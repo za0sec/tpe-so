@@ -21,6 +21,7 @@ static char username[USERNAME_SIZE] = "user";
 static char commandHistory[MAX_COMMAND][MAX_BUFF] = {0};
 static int commandIterator = 0;
 static int commandIdxMax = 0;
+static int run_in_background = 0;
 uint64_t cursor_pid;
 
 char usernameLength = 4;
@@ -104,7 +105,10 @@ void newLine(){
 	checkLine(&command_idx, &after_pipe_idx);
 
 	prints("\n", MAX_BUFF);
-	if (after_pipe[0] != '\0'){
+	if (run_in_background){
+		run_in_background = 0;
+		create_process(0, commands_ptr[command_idx], 0, NULL, NULL, 0);
+	} else if (after_pipe[0] != '\0'){
 		pipe_command();
 	} else {
 		(*commands_ptr[command_idx])();
@@ -154,12 +158,17 @@ void checkLine(int *command_idx, int *after_pipe_idx){
 	int j = 0;
 	int m = 0;
 	int k = 0;
+
 	for (j = 0; j < linePos && line[j] != ' '; j++){
 		command[j] = line[j];
 	}
 
 	while (j < linePos){
 		j++;
+		if (line[j] = '&'){
+			run_in_background = 1;
+			break;
+		}
 		if (line[j] == '|'){
 			while (line[j] == ' ' || line[j] == '|')
 				j++;
