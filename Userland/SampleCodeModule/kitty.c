@@ -56,20 +56,21 @@ void printHelp()
 	printsColor("\n    >loop               - prints Pid + greeting to the user", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >kill               - kills a proccess with a specifies PID", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >philo              - test philosophers", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >wc                 - counts the total amount of input lines", MAX_BUFF, LIGHT_BLUE);
+	printsColor("\n    >filter             - filt all input vocals", MAX_BUFF, LIGHT_BLUE);
 	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
 
 	printc('\n');
 }
 const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv",
                          "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest",
-                         "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", "kill", "philo"};
+                         "schetest","priotest","testschedulerprocesses", "testsync", "ps", "cat", "loop", "kill", "philo", "wc", "filter"};
 
 static void (*commands_ptr[MAX_ARGS])() = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv,
                                           cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest,
-                                          cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, cmd_kill, cmd_philo};
+                                          cmd_schetest, cmd_priotest, cmd_testschedulerprocesses, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, cmd_kill, cmd_philo, cmd_wc, cmd_filter};
 
 void kitty(){
-	
 	welcome();
 	char c;
 	printPrompt();
@@ -477,4 +478,12 @@ void welcome()
 
 void cmd_philo(){
 	init_philosophers(0, NULL);
+}
+
+void cmd_wc(){
+	create_process_foreground(0, &wc, 0, NULL, NULL, 0);
+}
+
+void cmd_filter(){
+	create_process_foreground(0, &filter, 0, NULL, NULL, 0);
 }

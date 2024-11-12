@@ -1,187 +1,131 @@
 #include <stdint.h>
-#include <sys_calls.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <sys_calls.h>
 #include <userlib.h>
 #include <philo.h>
 
-Philosopher philosophers[MAX_PHILOSOPHERS];
-int num_philosophers = 5; // Número inicial de filósofos
-void *mutex; // Semáforo para sección crítica
-void *semaphores[MAX_PHILOSOPHERS]; // Semáforos para cada filósofo
+void sleep(uint64_t ms) {
+    sys_wait(ms);
+}
 
-uint64_t init_philosophers(uint64_t argc, char *argv[]) {
-    // Inicialización de semáforos y filósofos
-    mutex = sys_sem_open("mutex", 1);
-    if (mutex == NULL) {
-        write_string("Failed to initialize mutex semaphore.\n", MAX_BUFF);
-        return -1;
-    }
+void init_philosophers(uint64_t argc, char *argv[]) {
+    // Inicializando semáforos
+    sys_sem_open(MUTEX_ARRAY, 1);
+    sys_sem_open(MUTEX_THINKERS, 1);
 
-    for (int i = 0; i < num_philosophers; i++) {
-        char sem_name[20];
-        intToStr(i, sem_name);
-        semaphores[i] = sys_sem_open(sem_name, 0);
-        if (semaphores[i] == NULL) {
-            write_string("Failed to initialize semaphore for philosopher ", MAX_BUFF);
-            printDec(i);
-            write_string("\n", 1);
-            return -1;
+    // Crear proceso controlador
+    uint64_t controller_pid = sys_create_process_foreground(0, controllers_handler, 0, NULL);
+
+    thinkers = INITIAL_THINKERS;
+
+    // Inicializar semáforos para los filósofos y crear procesos
+    for (int i = 0; i < MAX_PHYLOS; i++)
+        add_philosopher(i);
+
+    // Esperar a que terminen los filósofos
+    for (int i = 0; i < MAX_PHYLOS; i++)
+        sys_wait_pid(philosophers[i].pid);
+
+    // Cerrar semáforos
+    sys_sem_close(MUTEX_ARRAY);
+    sys_sem_close(MUTEX_THINKERS);
+}
+
+void phyloProcess(uint64_t argc, char *argv[]) {
+    int id = atoi(argv[0]);
+    int left = id;
+    int right = (id + 1) % MAX_PHYLOS;
+
+    while (thinkers != 0) {
+        if (id % 2) {
+            sys_sem_wait(philosophers[right].sem_name);
+            sys_sem_wait(philosophers[left].sem_name);
+        } else {
+            sys_sem_wait(philosophers[left].sem_name);
+            sys_sem_wait(philosophers[right].sem_name);
         }
 
-        philosophers[i].id = i;
-        philosophers[i].state = THINKING;
+        eat(id);
 
-        create_philosopher_process(i);
+        sys_sem_post(philosophers[left].sem_name);
+        sys_sem_post(philosophers[right].sem_name);
+
+        think(id);
     }
 
-    write_string("Press 'a' to add a philosopher, 'r' to remove, 'q' to quit.\n", MAX_BUFF);
+    sys_kill(sys_getPID()); // Finalizar proceso
+}
 
-    // Bucle principal
-    int running = 1;
-    while (running) {
-        char input = get_non_blocking_char();
+void think(int phy) {
+    sys_sem_wait(MUTEX_ARRAY);
+    philosophers[phy].state = 0;
+    reprint();
+    sys_sem_post(MUTEX_ARRAY);
+    sleep(GetUniform(phy));
+}
 
-        if (input == 'a') {
-            add_philosopher();
-        } else if (input == 'r') {
-            remove_philosopher();
-        } else if (input == 'q') {
-            running = 0;
+void eat(int phy) {
+    sys_sem_wait(MUTEX_ARRAY);
+    philosophers[phy].state = 1;
+    reprint();
+    sys_sem_post(MUTEX_ARRAY);
+    sleep(GetUniform(phy));
+}
+
+void add_philosopher(int phy) {
+    char indexStr[20];
+    intToStr(phy, indexStr);
+
+    // Crear semáforo para el filósofo
+    sys_sem_open(indexStr, 1);
+    strcpy(philosophers[phy].sem_name, indexStr);
+
+    // Crear proceso filósofo
+    char *philo_argv[] = { indexStr, NULL };
+    philosophers[phy].pid = sys_create_process_foreground(0, phyloProcess, 1, philo_argv);
+}
+
+uint64_t controllers_handler(uint64_t argc, char *argv[]) {
+    while (1) {
+        char aux = sys_read(0);
+
+        switch (aux) {
+            case 'a':
+                sys_sem_wait(MUTEX_THINKERS);
+                if(thinkers < MAX_PHYLOS)
+                    thinkers++;
+                sys_sem_post(MUTEX_THINKERS);
+                break;
+            case 'r':
+                sys_sem_wait(MUTEX_THINKERS);
+                if(thinkers > MIN_PHYLOS)
+                    thinkers--;
+                sys_sem_post(MUTEX_THINKERS);
+                break;
+            case 'x':
+                thinkers = 0;
+                return 0;
         }
-
-        print_state();
-        while (sys_getSeconds() % 2 != 0);
     }
-
-    // Limpieza
-    for (int i = 0; i < num_philosophers; i++) {
-        sys_kill(philosophers[i].pid);
-        char sem_name[20];
-        intToStr(i, sem_name);
-        sys_sem_close(semaphores[i]);
-    }
-    sys_sem_close(mutex);
-
     return 0;
 }
 
-void philosopher_function(uint64_t argc, char *argv[]) {
-    int id = atoi(argv[0]);
-
-    while (1) {
-        think(id); // pensar();
-        take_forks(id); // tomar_tenedores(i);
-        eat(id); // comer();
-        put_forks(id); // poner_tenedores(i);
-    }
-}
-
-void think(int id) {
-    // Simular pensando
-    while (sys_getSeconds() % 2 != 0);
-}
-
-void eat(int id) {
-    // Simular comiendo
-    while (sys_getSeconds() % 2 != 0);
-}
-
-void take_forks(int id) {
-    sys_sem_wait(mutex); // down(&mutex);
-    philosophers[id].state = HUNGRY; // estado[i] = HAMBRIENTO;
-    test(id); // probar(i);
-    sys_sem_post(mutex); // up(&mutex);
-    sys_sem_wait(semaphores[id]); // down(&s[i]);
-}
-
-void put_forks(int id) {
-    sys_sem_wait(mutex); // down(&mutex);
-    philosophers[id].state = THINKING; // estado[i] = PENSANDO;
-    test(LEFT(id)); // probar(IZQUIERDO);
-    test(RIGHT(id)); // probar(DERECHO);
-    sys_sem_post(mutex); // up(&mutex);
-}
-
-void test(int id) {
-    if (philosophers[id].state == HUNGRY &&
-        philosophers[LEFT(id)].state != EATING &&
-        philosophers[RIGHT(id)].state != EATING) {
-        philosophers[id].state = EATING; // estado[i] = COMIENDO;
-        sys_sem_post(semaphores[id]); // up(&s[i]);
-    }
-}
-
-int random_time() {
-    return 500 + (sys_getPID() % 500); // Retorna un tiempo entre 500 y 999 ms
-}
-
-void create_philosopher_process(int id) {
-    char buff[10];
-    intToStr(id, buff);
-    char *argv[] = {buff, NULL};
-    uint64_t pid = sys_create_process(1, philosopher_function, 1, argv);
-    philosophers[id].pid = pid;
-}
-
-void print_state() {
-    sys_sem_wait(mutex);
-    for (int i = 0; i < num_philosophers; i++) {
-        if (philosophers[i].state == EATING) {
-            write_char('E');
+void reprint() {
+    if(thinkers == 0)
+        return;
+    sys_sem_wait(MUTEX_THINKERS);
+    
+    // char buffer[MAX_BUFF];
+    // sprintf(buffer, "%d ->\t ", thinkers);
+    // write_string(buffer, MAX_BUFF);
+    
+    for (int i = 0; i < thinkers; i++) {
+        if(philosophers[i].state == 1) {
+            write_string("E   ", MAX_BUFF);
         } else {
-            write_char('.');
+            write_string(".   ", MAX_BUFF);
         }
     }
-    write_char('\n');
-    sys_sem_post(mutex);
-}
-
-void add_philosopher() {
-    if (num_philosophers >= MAX_PHILOSOPHERS) {
-        write_string("Maximum number of philosophers reached.\n", MAX_BUFF);
-        return;
-    }
-
-    sys_sem_wait(mutex);
-
-    int id = num_philosophers;
-    num_philosophers++;
-
-    char sem_name[20];
-    intToStr(id, sem_name);
-    semaphores[id] = sys_sem_open(sem_name, 0);
-
-    philosophers[id].id = id;
-    philosophers[id].state = THINKING;
-
-    create_philosopher_process(id);
-
-    sys_sem_post(mutex);
-}
-
-void remove_philosopher() {
-    if (num_philosophers <= MIN_PHILOSOPHERS) {
-        write_string("Minimum number of philosophers reached.\n", MAX_BUFF);
-        return;
-    }
-
-    sys_sem_wait(mutex);
-
-    num_philosophers--;
-    int id = num_philosophers;
-
-    sys_kill(philosophers[id].pid);
-    sys_sem_close(semaphores[id]);
-
-    sys_sem_post(mutex);
-}
-
-char get_non_blocking_char() {
-    char c;
-    if ((c = sys_read(0)) > 0) {
-        return c;
-    } else {
-        return 0;
-    }
+    write_string("\n\n", MAX_BUFF);
+    sys_sem_post(MUTEX_THINKERS);
 }

@@ -183,15 +183,15 @@ static int sys_sem_open(char *sem_name, int init_value) {
     return sem_open(sem_name, init_value);
 }
 
-static void sys_sem_close(sem_t *sem) {
+static void sys_sem_close(char *sem) {
     sem_close(sem);
 }
 
-static void sys_sem_wait(sem_t *sem) {
+static void sys_sem_wait(char *sem) {
     sem_wait(sem);
 }
 
-static void sys_sem_post(sem_t *sem) {
+static void sys_sem_post(char *sem) {
     sem_post(sem);
 }
 

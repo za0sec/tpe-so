@@ -1,43 +1,23 @@
-#ifndef _PHILO_H_
-#define _PHILO_H_
+#define MAX_PHYLOS 10
+#define MIN_PHYLOS 3
+#define INITIAL_THINKERS 5
 
-#include <stdint.h>
+typedef struct phylo {
+    uint64_t pid;
+    char sem_name[20]; // Nombre del semáforo
+    int state; // Estado del filósofo: 0 = pensando, 1 = comiendo
+} Phylo;
 
-#define MAX_PHILOSOPHERS 16
-#define MIN_PHILOSOPHERS 2
+#define MUTEX_ARRAY "access_array"
+static Phylo philosophers[MAX_PHYLOS];
 
-typedef enum { THINKING, HUNGRY, EATING } State;
+#define MUTEX_THINKERS "thinkers_mutex"
+static int thinkers;    
 
-typedef struct {
-    int id;
-    State state;
-    uint64_t pid; // PID del proceso filósofo
-} Philosopher;
-
-#define MAX_PHILOSOPHERS 16
-#define MIN_PHILOSOPHERS 2
-
-#define LEFT(i) ((i + num_philosophers - 1) % num_philosophers)
-#define RIGHT(i) ((i + 1) % num_philosophers)
-
-#define THINKING 0
-#define HUNGRY 1
-#define EATING 2
-
-
-uint64_t init_philosophers(uint64_t argc, char *argv[]);
-void philosopher_function(uint64_t argc, char *argv[]);
-void think(int id);
-void eat(int id);
-void take_forks(int id);
-void put_forks(int id);
-void test(int id);
-int random_time();
-void create_philosopher_process(int id);
-void print_state();
-void add_philosopher();
-void remove_philosopher();
-char get_non_blocking_char();
-
-
-#endif
+void init_philosophers(uint64_t argc, char *argv[]);
+uint64_t controllers_handler(uint64_t argc, char *argv[]);
+void reprint();
+void eat(int phy);
+void think(int phy);
+void add_philosopher(int phy);
+void phyloProcess(uint64_t argc, char *argv[]);
