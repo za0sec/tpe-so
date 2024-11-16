@@ -192,12 +192,14 @@ interrupt_keyboardHandler:
     popState
     iretq
 
-interrupt_timerHandler:
+interrupt_timerHandler: 
 	pushState
 
 	mov rdi, rsp
 	call schedule
 	mov rsp, rax
+
+	call timer_handler
 
 	endOfHardwareInterrupt
 

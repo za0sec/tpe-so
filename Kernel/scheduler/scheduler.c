@@ -292,16 +292,19 @@ void send_EOF_foreground(){
 }
 
 uint64_t set_priority(uint64_t pid, uint8_t priority){
-    priority = priority % HIGHEST_QUEUE;
+    priority = priority % (HIGHEST_QUEUE + 1);
     pcb_t process;
     if(current_process.pid == pid){
         current_process.priority = priority;
+        current_process.used_quantum = 0;
         current_process.assigned_quantum = ASSIGN_QUANTUM(priority);
     } else if( (process = find_dequeue_priority(pid)).pid > 0 ){
+        process.used_quantum = 0;
         process.priority = priority;
-        add_priority_queue(process);
+        add_priority_queue(process);    // Esta funcion ya le asigna el quantum correspondiente
     } else if ( (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
         process.priority = priority;
+        process.used_quantum = 0;
         process.assigned_quantum = ASSIGN_QUANTUM(priority);
         add(all_blocked_queue, process);
     } else {
