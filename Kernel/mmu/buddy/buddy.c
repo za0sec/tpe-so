@@ -4,7 +4,7 @@
 #include <utils.h>
 #include <videoDriver.h>
 
-#define MIN_ALLOC 32
+#define MIN_ALLOC 16
 
 enum StateMem {
     FULL, EMPTY, SPLIT
@@ -37,7 +37,7 @@ static unsigned fixsize(unsigned size) {
 
 void* createSons(node *parent) {
     unsigned idx = parent->index * 2 + 1;
-    parent->left = parent + idx;
+    parent->left = (node *)((char *)parent + idx * sizeof(node));
 
     if ((uint64_t) parent->left >= MEM_START) {
         return NULL;
@@ -50,7 +50,7 @@ void* createSons(node *parent) {
     uint64_t aux = (uint64_t)(parent->memPtr) + (parent->size / 2);
 
 
-    parent->right = parent + idx + 1;
+    parent->right = (node *)((char *)parent + (idx + 1) * sizeof(node));
     if ((uint64_t) parent->right >= (uint64_t)MEM_START){
         return NULL;
     }
@@ -59,6 +59,7 @@ void* createSons(node *parent) {
 
     parent->right->memPtr = (void *) aux;
     parent->right->state = EMPTY;
+    return NULL;
 }
 
 void stateUpdate(node *actual) {
@@ -75,7 +76,7 @@ void stateUpdate(node *actual) {
         actual->state = EMPTY;
 }
 
-void *allocRec(node *actual, unsigned size) {
+void *allocRec(node *actual, uint32_t size) {
     if (actual->state == FULL) {
         return NULL;
     }
@@ -85,11 +86,8 @@ void *allocRec(node *actual, unsigned size) {
         if (aux == NULL) {
             aux = allocRec(actual->right, size);
         }
-
         stateUpdate(actual);
-
         return aux;
-
     } else {
 
         if (size > actual->size) {
@@ -108,22 +106,23 @@ void *allocRec(node *actual, unsigned size) {
         return actual->memPtr;
     }
 
+    return NULL;
 }
 
 
-void *mem_alloc(uint32_t size) {
-    if (size > root->size) {
+void *mem_alloc(uint32_t s) {
+    if (s > root->size) {
         return NULL;
     }
 
-    if (size < MIN_ALLOC)
-        size = MIN_ALLOC;
+    if (s < MIN_ALLOC)
+        s = MIN_ALLOC;
 
-    if (!IS_POWER_OF_2(size)) {
-        size = fixsize(size);
+    if (!IS_POWER_OF_2(s)) {
+        s = fixsize(s);
     }
 
-    void *ptr = allocRec(root, size);
+    void *ptr = allocRec(root, s);
     return ptr;
 }
 
@@ -143,7 +142,6 @@ int freeRec(node *actual, void *block) {
         if (actual->state == EMPTY) {
             actual->right = NULL;
             actual->left = NULL;
-
         }
         return ret;
 
@@ -160,24 +158,24 @@ int freeRec(node *actual, void *block) {
 }
 
 
-void mem_free(void *block) {
-    int i = freeRec(root, block);
+void mem_free(void *ptr) {
+    int i = freeRec(root, ptr);
     if (i == -1) {
         return;
     }
 }
 
-void mem_init(void * ptr, uint32_t max_size) {
+void mem_init(void * ptr, uint32_t s) {
     root = (node *)ptr;
     root->index = 0;
-    root->size = max_size;
+    root->size = s;
     root->state = EMPTY;
     root->memPtr = (void *) MEM_START;
 }
 
 
 char *mem_state() {
-    char *buf = mem_alloc(1024); 
+    char *buf = mem_alloc(1024 * 2); 
     if (!buf) {
         return NULL; 
     }
