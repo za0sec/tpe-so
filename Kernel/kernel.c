@@ -26,7 +26,7 @@ extern void _hlt();
 
 static const uint64_t PageSize = 0x1000;
 
-#define MEM_SIZE 1024*1024
+#define MEM_SIZE 128*(1024*8)
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;

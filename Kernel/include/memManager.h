@@ -11,7 +11,7 @@
 #define ALIGN_POINTER(ptr, alignment) \
     ((uintptr_t)(ptr) + ((alignment) - ((uintptr_t)(ptr) % (alignment))))
 
-void mem_init(void *ptr, int s);
+void mem_init(void *ptr, uint32_t s);
 
 void *mem_alloc(uint32_t s);
 

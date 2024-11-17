@@ -1,37 +1,32 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <memManager.h>
+#include <utils.h>
+#include <videoDriver.h>
 
 #define MIN_ALLOC 32
 
-typedef enum {
-    FREE,
-    DIVIDED,
-    FULL
-} state_t;
+enum StateMem {
+    FULL, EMPTY, SPLIT
+};
 
-typedef struct node_t{
-    struct node_t *left;
-    struct node_t *right;
+typedef struct node {
+    struct node *left;
+    struct node *right;
     unsigned index;
-    void *mem_ptr;
-    state_t state;
+    void *memPtr;
     unsigned size;
-} node_t;
+    enum StateMem state;
+} node;
 
-node_t *root;
+#define IS_POWER_OF_2(x) (!((x)&((x)-1)))
 
-#define POW_2(x) (!((x) & ((x) - 1)))
+static node *root;
+unsigned memoryAllocated = 0;
 
-unsigned memory_allocated = 0;
+static void traverse_and_print(struct node *node, int depth, char *buf, int *offset);
 
-void *rec_alloc(node_t * parent, unsigned s);
-int rec_free(node_t *node, void *ptr);
-void update_state(node_t *node);
-void create_children(node_t *parent);
-static unsigned next_power_of_2(unsigned size);
-
-static unsigned next_power_of_2(unsigned size) {
+static unsigned fixsize(unsigned size) {
     size |= size >> 1;
     size |= size >> 2;
     size |= size >> 4;
@@ -40,124 +35,214 @@ static unsigned next_power_of_2(unsigned size) {
     return size + 1;
 }
 
-// static unsigned next_power_of_2(unsigned size) {
-//     unsigned power = 1;
-//     while (power < size) {
-//         power <<= 1;
-//     }
-//     return power;
-// }
-
-void create_children(node_t *parent){
+void* createSons(node *parent) {
     unsigned idx = parent->index * 2 + 1;
-
     parent->left = parent + idx;
-    if ((uint64_t)parent->left >= MEM_START) return;
-                                                                            
+
+    if ((uint64_t) parent->left >= MEM_START) {
+        return NULL;
+    }
     parent->left->index = idx;
     parent->left->size = parent->size / 2;
-    parent->left->mem_ptr = parent->mem_ptr;
-    parent->left->state = FREE;
+    parent->left->memPtr = parent->memPtr;
+    parent->left->state = EMPTY;
+
+    uint64_t aux = (uint64_t)(parent->memPtr) + (parent->size / 2);
+
 
     parent->right = parent + idx + 1;
-    if ((uint64_t)parent->right >= MEM_START) return;
-
+    if ((uint64_t) parent->right >= (uint64_t)MEM_START){
+        return NULL;
+    }
     parent->right->index = idx + 1;
     parent->right->size = parent->size / 2;
-    parent->right->mem_ptr = (void *)((uint64_t)(parent->mem_ptr) + (parent->size / 2));
-    parent->right->state = FREE;
+
+    parent->right->memPtr = (void *) aux;
+    parent->right->state = EMPTY;
 }
 
-void update_state(node_t *node){
-    if (!node->right || !node->left) {
-        node->state = FREE;
+void stateUpdate(node *actual) {
+    if (actual->right == NULL || actual->left == NULL) {
+        actual->state = EMPTY;
         return;
     }
-    if (node->left->state == FULL && node->right->state == FULL){
-        node->state = FULL;
-    }else if (node->left->state == DIVIDED || node->right->state == DIVIDED || node->left->state == FULL || node->right->state == FULL){
-        node->state = DIVIDED;
-    }
-    else{
-        node->state = FREE;
-    }
+    if (actual->left->state == FULL && actual->right->state == FULL)
+        actual->state = FULL;
+    else if (actual->left->state == SPLIT || actual->right->state == SPLIT ||
+             actual->left->state == FULL || actual->right->state == FULL)
+        actual->state = SPLIT;
+    else
+        actual->state = EMPTY;
 }
 
-int rec_free(node_t *node, void *ptr){
-    if (!node->left && !node->right && node->state == FULL && node->mem_ptr == ptr){
-        node->state = FREE;
-        memory_allocated -= node->size;
-        return 0;
-    }
-
-    int to_ret = -1;
-    if (node->left && (uint64_t)node->left->mem_ptr <= (uint64_t)ptr){
-        to_ret = rec_free(node->left, ptr);
-    }else if (node->right){
-        to_ret = rec_free(node->right, ptr);
-    }
-
-    update_state(node);
-    if (node->state == FREE){
-        node->left = NULL;
-        node->right = NULL;
-    }
-
-    return to_ret;
-}
-
-void mem_free(void *ptr){
-    if(root) rec_free(root, ptr);
-}
-
-void mem_init(void *ptr, int s){
-    root = (node_t *)ptr;
-    root->index = 0;
-    root->size = s;
-    root->state = FREE;
-    root->mem_ptr = (void *)MEM_START;
-}
-
-void * mem_alloc(uint32_t s){
-    if(s > root->size){
+void *allocRec(node *actual, unsigned size) {
+    if (actual->state == FULL) {
         return NULL;
     }
 
-    if(s < MIN_ALLOC){ 
-        s = MIN_ALLOC;
-    }
-
-    if(!POW_2(s)){
-        s = next_power_of_2(s);
-    }
-
-    return rec_alloc(root, s);
-}
-
-void *rec_alloc(node_t *parent, unsigned s){
-    if(parent->state == FULL) return NULL;
-
-    if(parent->left || parent->right){
-        void * aux = rec_alloc(parent->left, s);
-        if(!aux){ 
-            aux = rec_alloc(parent->right, s);
+    if (actual->left != NULL || actual->right != NULL) { //si tiene hijos es porque este nodo ya esta particionado
+        void *aux = allocRec(actual->left, size);
+        if (aux == NULL) {
+            aux = allocRec(actual->right, size);
         }
-        update_state(parent);
+
+        stateUpdate(actual);
+
         return aux;
-    }else{
-        if (s > parent->size){
+
+    } else {
+
+        if (size > actual->size) {
             return NULL;
         }
 
-        if(parent->size / 2 >= s){
-            create_children(parent);
-            void * aux = rec_alloc(parent->left, s);
-            update_state(parent);
+        if (actual->size / 2 >= size) {
+            createSons(actual);
+            void *aux = allocRec(actual->left, size);
+            stateUpdate(actual);
             return aux;
+
         }
-        
-        parent->state = FULL;
-        memory_allocated += s;
-        return parent->mem_ptr;
+        actual->state = FULL;
+        memoryAllocated += size;
+        return actual->memPtr;
     }
+
+}
+
+
+void *mem_alloc(uint32_t size) {
+    if (size > root->size) {
+        return NULL;
+    }
+
+    if (size < MIN_ALLOC)
+        size = MIN_ALLOC;
+
+    if (!IS_POWER_OF_2(size)) {
+        size = fixsize(size);
+    }
+
+    void *ptr = allocRec(root, size);
+    return ptr;
+}
+
+
+int freeRec(node *actual, void *block) {
+    if (actual->left != NULL || actual->right != NULL) {
+        int ret;
+        if (actual->right!=0 && (uint64_t) actual->right->memPtr > (uint64_t) block) {
+            ret = freeRec(actual->left, block);
+
+        } else {
+            ret = freeRec(actual->right, block);
+        }
+
+        stateUpdate(actual);
+
+        if (actual->state == EMPTY) {
+            actual->right = NULL;
+            actual->left = NULL;
+
+        }
+        return ret;
+
+
+    } else if (actual->state == FULL) {
+        if (actual->memPtr == block) {
+            actual->state = EMPTY;
+            memoryAllocated -= actual->size;
+            return 0;
+        }
+        return -1;
+    }
+    return -1;
+}
+
+
+void mem_free(void *block) {
+    int i = freeRec(root, block);
+    if (i == -1) {
+        return;
+    }
+}
+
+void mem_init(void * ptr, uint32_t max_size) {
+    root = (node *)ptr;
+    root->index = 0;
+    root->size = max_size;
+    root->state = EMPTY;
+    root->memPtr = (void *) MEM_START;
+}
+
+
+char *mem_state() {
+    char *buf = mem_alloc(1024); 
+    if (!buf) {
+        return NULL; 
+    }
+
+    int offset = 0;
+    strcpy(buf + offset, "Memory State:\n", strlen("Memory State:\n"));
+    offset += strlen("Memory State:\n");
+
+    // Agrega "Total memory: "
+    strcpy(buf + offset, "Total memory: ", strlen("Total memory: "));
+    offset += strlen("Total memory: ");
+    intToStr(root->size, buf + offset); // Convierte y agrega el tamaño total.
+    offset += strlen(buf + offset);
+    buf[offset++] = '\n';
+
+    // Agrega "Memory allocated: "
+    strcpy(buf + offset, "Memory allocated: ", strlen("Memory allocated: "));
+    offset += strlen("Memory allocated: ");
+    intToStr(memoryAllocated, buf + offset); // Convierte y agrega la memoria asignada.
+    offset += strlen(buf + offset);
+    buf[offset++] = '\n';
+
+    // Agrega "Memory free: "
+    strcpy(buf + offset, "Memory free: ", strlen("Memory free: "));
+    offset += strlen("Memory free: ");
+    intToStr(root->size - memoryAllocated, buf + offset); // Convierte y agrega la memoria libre.
+    offset += strlen(buf + offset);
+    buf[offset++] = '\n';
+
+    traverse_and_print(root, 0, buf, &offset);
+
+    return buf;
+}
+
+static void traverse_and_print(node *node, int depth, char *buf, int *offset) {
+    if (!node) return;
+
+    // Indentación para mostrar la jerarquía
+    for (int i = 0; i < depth; i++) {
+        buf[*offset] = ' ';
+        (*offset)++;
+    }
+
+    // Agrega información del nodo
+    strcpy(buf + *offset, "Node ", strlen("Node "));
+    (*offset) += strlen("Node ");
+    intToStr(node->index, buf + *offset);
+    (*offset) += strlen(buf + *offset);
+
+    strcpy(buf + *offset, " | Size: ", strlen(" | Size: "));
+    (*offset) += strlen(" | Size: ");
+    intToStr(node->size, buf + *offset);
+    (*offset) += strlen(buf + *offset);
+
+    strcpy(buf + *offset, " | State: ", strlen(" | State: "));
+    (*offset) += strlen(" | State: ");
+    strcpy(buf + *offset,
+            node->state == EMPTY ? "EMPTY" :
+            node->state == SPLIT ? "SPLIT" : "FULL", strlen(node->state == EMPTY ? "EMPTY" :
+            node->state == SPLIT ? "SPLIT" : "FULL"));
+    (*offset) += strlen(buf + *offset);
+    buf[*offset] = '\n';
+    (*offset)++;
+
+        // Recursión en los hijos
+    traverse_and_print(node->left, depth + 1, buf, offset);
+    traverse_and_print(node->right, depth + 1, buf, offset);
 }
