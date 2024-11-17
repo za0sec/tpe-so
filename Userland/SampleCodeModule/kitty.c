@@ -522,7 +522,7 @@ void welcome()
 }
 
 uint64_t cmd_philo(uint64_t argc, char *argv[]){
-	init_philosophers(0, NULL);
+	philosophers_simulation();
 	return 0;
 }
 

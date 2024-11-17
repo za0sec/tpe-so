@@ -258,7 +258,7 @@ void run_test_processes(){
       wait(5);
       sys_nice(pid1, 3);
       sys_nice(pid2, 0);
-    } else if(c == 'C'){
+    } else if(c == 'C' || c == 'c' || c == 'Q' || c == 'q'){
       sys_kill(pid1);
       sys_kill(pid2);
       write_string("Test_processes finished\n", strlen("Test_processes finished\n"));

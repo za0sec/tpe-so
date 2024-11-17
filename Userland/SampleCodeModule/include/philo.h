@@ -1,21 +1,26 @@
-#define MAX_PHYLOS 10
-#define MIN_PHYLOS 3
-#define INITIAL_THINKERS 5
+#ifndef philo_h
+#define philo_h
 
-typedef struct phylo {
+#include <stdint.h>
+
+typedef struct philo {
     uint64_t pid;
-    char sem_name[20]; // Nombre del semáforo
-    int state; // Estado del filósofo: 0 = pensando, 1 = comiendo
-} Phylo;
+    char *sem_name;
+    int state;
+    int hunger;
+} philo;
 
-#define MUTEX_ARRAY "access_array"
+#define MUTEX_PHILOSOPHERS "philo_mutex"
+#define MUTEX_COUNT_PHILO "count_philo_mutex"
+#define MAX_PHILOS 10
+#define MIN_PHILOS 3
+#define INITIAL_PHILO 5
 
-#define MUTEX_THINKERS "thinkers_mutex"
+void philosophers_simulation();
+void add_philosopher(int philo);
+void print_state();
+void philosopher(int argc, char *argv[]);
+void think(int philo);
+void eat(int philo);
 
-void init_philosophers(uint64_t argc, char *argv[]);
-uint64_t controllers_handler(uint64_t argc, char *argv[]);
-void reprint();
-void eat(int phy);
-void think(int phy);
-void add_philosopher(int phy);
-void phyloProcess(uint64_t argc, char *argv[]);
+#endif

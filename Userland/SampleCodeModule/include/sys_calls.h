@@ -72,11 +72,11 @@ uint64_t sys_yield();
 
 int sys_sem_open(char* sem_name, int init_value);
 
-uint64_t sys_sem_close(void *sem);
+uint64_t sys_sem_close(char *sem_name);
 
-uint64_t sys_sem_wait(void *sem);
+uint64_t sys_sem_wait(char *sem_name);
 
-uint64_t sys_sem_post(void *sem);
+uint64_t sys_sem_post(char *sem_name);
 
 void sys_wait_pid(uint64_t pid);
 

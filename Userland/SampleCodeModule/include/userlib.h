@@ -113,7 +113,8 @@ void registerInfo();
 
 void cat();
 
-void intToStr(int value, char *str);
+// Deja una string con el value en char *buf
+void intToStr(int value, char *buf);
 
 uint64_t test_mm(uint64_t argc, char *argv[]);
 
@@ -124,5 +125,9 @@ char **mem_alloc_args(char **args);
 int stringArrayLen(char **array);
 
 int isVowel(char lett);
+
+uint32_t GetUniform(uint32_t max);
+
+int64_t satoi(char *str);
 
 #endif /* _USERLIB_H_ */

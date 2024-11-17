@@ -1,48 +1,98 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
-#include <stdint.h>
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <stdlib.h>
-#include <sys_calls.h>
 #include <userlib.h>
+#include <sys_calls.h>
 #include <philo.h>
 
-static Phylo philosophers[MAX_PHYLOS];
+philo philosophers[MAX_PHILOS];
+int count_philo;
 
-static int thinkers;    
+void philosophers_simulation() {
+    char buf[MAX_BUFF] = {0};
+    count_philo = INITIAL_PHILO;
 
-void sleep(uint64_t ms) {
-    sys_wait(ms);
-}
+    write_string("PHILOSOPHER SIMULATION STARTED\nPress 'a' to add a philosopher, 'r' to remove one or 'x' to exit\n", MAX_BUFF);
+    wait(99);
 
-void init_philosophers(uint64_t argc, char *argv[]) {
-    // Inicializando semáforos
-    sys_sem_open(MUTEX_ARRAY, 1);
-    sys_sem_open(MUTEX_THINKERS, 1);
+    if( sys_sem_open(MUTEX_PHILOSOPHERS, 1) != 0 || sys_sem_open(MUTEX_COUNT_PHILO, 1) != 0 ) {
+        return;
+    }
 
-    // Crear proceso controlador
-    sys_create_process_foreground(0, &controllers_handler, 0, NULL);
-
-    thinkers = INITIAL_THINKERS;
-
-    // Inicializar semáforos para los filósofos y crear procesos
-    for (int i = 0; i < MAX_PHYLOS; i++)
+    for (int i = 0; i < MAX_PHILOS; i++){
         add_philosopher(i);
+    } 
 
-    // Esperar a que terminen los filósofos
-    for (int i = 0; i < MAX_PHYLOS; i++)
-        sys_wait_pid(philosophers[i].pid);
+    char c = getChar();
+    while (c != 'x') {
+        if(c == 'a'){
+            sys_sem_wait(MUTEX_COUNT_PHILO);
 
-    // Cerrar semáforos
-    sys_sem_close(MUTEX_ARRAY);
-    sys_sem_close(MUTEX_THINKERS);
+            if(count_philo < MAX_PHILOS){
+                count_philo++;
+                write_string("Added philosopher\n", MAX_BUFF);
+            }
+
+            sys_sem_post(MUTEX_COUNT_PHILO);
+        } else if (c == 'r'){
+            sys_sem_wait(MUTEX_COUNT_PHILO);
+
+            if(count_philo > MIN_PHILOS){
+                count_philo--;
+                write_string("Removed philosopher\n", MAX_BUFF);
+            }
+
+            sys_sem_post(MUTEX_COUNT_PHILO);
+        }
+        c = getChar();
+    }
+
+    for (int i = 0; i < MAX_PHILOS; i++){
+        if(philosophers[i].pid == 0){
+            continue;
+        }
+
+        sys_kill(philosophers[i].pid);
+        sys_mem_free(philosophers[i].sem_name);
+        sys_sem_close(philosophers[i].sem_name);
+        philosophers[i].sem_name = NULL;
+        philosophers[i].pid = 0;
+    }
+
+    for (int i = 0; i < count_philo; i++){
+        write_string("Philosopher ", MAX_BUFF);
+        intToStr(i, buf);
+        write_string(buf, MAX_BUFF);
+        write_string(" ate ", MAX_BUFF);
+        intToStr(philosophers[i].hunger, buf);
+        write_string(buf, MAX_BUFF);
+        write_string(" times\n", MAX_BUFF);
+    }
+
+    sys_sem_close(MUTEX_PHILOSOPHERS);
+    sys_sem_close(MUTEX_COUNT_PHILO);
+
+    write_string("PHILOSOPHER SIMULATION FINISHED\n", MAX_BUFF);
 }
 
-void phyloProcess(uint64_t argc, char *argv[]) {
-    int id = atoi(argv[0]);
-    int left = id;
-    int right = (id + 1) % MAX_PHYLOS;
+void add_philosopher(int philo) {
+    char * indexStr = sys_mem_alloc(sizeof(char) * 2);
+    intToStr(philo, indexStr);
+    sys_sem_open(indexStr, 1);
+    philosophers[philo].sem_name = indexStr;
 
-    while (thinkers != 0) {
+    philosophers[philo].hunger = 0;
+
+    char *philo_argv[2] = {indexStr, NULL};
+    philosophers[philo].pid = create_process(0, (program_t)philosopher, 1, mem_alloc_args(philo_argv), NULL, 0);
+}
+
+void philosopher(int argc, char *argv[]) {
+    int id = satoi(argv[0]);                  
+    int left = id;
+    int right = (id + 1) % MAX_PHILOS;
+
+    while (count_philo != 0) {
         if (id % 2) {
             sys_sem_wait(philosophers[right].sem_name);
             sys_sem_wait(philosophers[left].sem_name);
@@ -58,80 +108,45 @@ void phyloProcess(uint64_t argc, char *argv[]) {
 
         think(id);
     }
-
-    sys_kill(sys_getPID()); // Finalizar proceso
 }
 
-void think(int phy) {
-    sys_sem_wait(MUTEX_ARRAY);
-    philosophers[phy].state = 0;
-    reprint();
-    sys_sem_post(MUTEX_ARRAY);
-    // sleep(GetUniform(phy));
+void think(int philo) {
+    sys_sem_wait(MUTEX_PHILOSOPHERS);
+    philosophers[philo].state = 0;
+    print_state();
+    sys_sem_post(MUTEX_PHILOSOPHERS);
+
+    sys_wait(GetUniform(philo));
 }
 
-void eat(int phy) {
-    sys_sem_wait(MUTEX_ARRAY);
-    philosophers[phy].state = 1;
-    reprint();
-    sys_sem_post(MUTEX_ARRAY);
-    // sleep(GetUniform(phy));
-}
+void eat(int philo) {
+    sys_sem_wait(MUTEX_PHILOSOPHERS);
+    philosophers[philo].state = 1; 
 
-void add_philosopher(int phy) {
-    char indexStr[20];
-    intToStr(phy, indexStr);
-
-    // Crear semáforo para el filósofo
-    sys_sem_open(indexStr, 1);
-    strcpy(philosophers[phy].sem_name, indexStr);
-
-    // Crear proceso filósofo
-    char *philo_argv[] = { indexStr, NULL };
-    philosophers[phy].pid = sys_create_process_foreground(0, (program_t)phyloProcess, 1, philo_argv);
-}
-
-uint64_t controllers_handler(uint64_t argc, char *argv[]) {
-    while (1) {
-        char aux = sys_read(0);
-
-        switch (aux) {
-            case 'a':
-                sys_sem_wait(MUTEX_THINKERS);
-                if(thinkers < MAX_PHYLOS)
-                    thinkers++;
-                sys_sem_post(MUTEX_THINKERS);
-                break;
-            case 'r':
-                sys_sem_wait(MUTEX_THINKERS);
-                if(thinkers > MIN_PHYLOS)
-                    thinkers--;
-                sys_sem_post(MUTEX_THINKERS);
-                break;
-            case 'x':
-                thinkers = 0;
-                return 0;
-        }
+    if(philo < count_philo){
+        philosophers[philo].hunger++;
     }
-    return 0;
+    
+    print_state();
+    sys_sem_post(MUTEX_PHILOSOPHERS);
+
+    sys_wait(GetUniform(philo));
 }
 
-void reprint() {
-    if(thinkers == 0)
+void print_state() {
+    char *state_buf;
+
+    if(count_philo == 0){
         return;
-    sys_sem_wait(MUTEX_THINKERS);
-    
-    // char buffer[MAX_BUFF];
-    // sprintf(buffer, "%d ->\t ", thinkers);
-    // write_string(buffer, MAX_BUFF);
-    
-    for (int i = 0; i < thinkers; i++) {
-        if(philosophers[i].state == 1) {
-            write_string("E   ", MAX_BUFF);
-        } else {
-            write_string(".   ", MAX_BUFF);
-        }
     }
-    write_string("\n\n", MAX_BUFF);
-    sys_sem_post(MUTEX_THINKERS);
+
+    sys_sem_wait(MUTEX_COUNT_PHILO);
+ 
+    for (int i = 0; i < count_philo; i++){
+        state_buf = philosophers[i].state == 1 ? "E   " : ".   "; 
+        write_string(state_buf, MAX_BUFF);
+    }
+    write_string("\n", MAX_BUFF);
+    
+    sys_sem_post(MUTEX_COUNT_PHILO);
 }
