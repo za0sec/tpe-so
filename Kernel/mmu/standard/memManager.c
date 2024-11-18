@@ -8,7 +8,7 @@ void * start;
 int size, current;
 void * free_ptrs[CHUNK_COUNT];
 
-void mem_init(void *ptr, int s){
+void mem_init(void *ptr, uint32_t s){
     start = (void *)ALIGN_POINTER(ptr, WORD_ALIGN);
     size = s;
     current = 0;

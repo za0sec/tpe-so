@@ -1,37 +1,32 @@
-// This is a personal academic project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+// Personal academic work. Dear PVS-Studio, analyze this, please.
+// PVS-Studio Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <memManager.h>
+#include <utils.h>
+#include <videoDriver.h>
 
-#define MIN_ALLOC 32
+#define MIN_ALLOC_UNIT 8
 
 typedef enum {
-    FREE,
-    DIVIDED,
-    FULL
-} state_t;
+    MEM_FULL, MEM_EMPTY, MEM_SPLIT
+} MemState;
 
-typedef struct node_t{
-    struct node_t *left;
-    struct node_t *right;
-    unsigned index;
-    void *mem_ptr;
-    state_t state;
-    unsigned size;
-} node_t;
+typedef struct MemoryNode {
+    struct MemoryNode *leftChild;
+    struct MemoryNode *rightChild;
+    unsigned nodeIndex;
+    void *memoryBlock;
+    unsigned blockSize;
+    MemState currentState;
+} MemoryNode;
 
-node_t *root;
+#define POWER_OF_2(x) (((x) & ((x) - 1)) == 0)
 
-#define POW_2(x) (!((x) & ((x) - 1)))
+static MemoryNode *rootNode;
+static unsigned allocatedMemory = 0;
 
-unsigned memory_allocated = 0;
+static void recursive_print(MemoryNode *current, int depth, char *buffer, int *offset);
 
-void *rec_alloc(node_t * parent, unsigned s);
-int rec_free(node_t *node, void *ptr);
-void update_state(node_t *node);
-void create_children(node_t *parent);
-static unsigned next_power_of_2(unsigned size);
-
-static unsigned next_power_of_2(unsigned size) {
+static unsigned align_size(unsigned size) {
     size |= size >> 1;
     size |= size >> 2;
     size |= size >> 4;
@@ -40,124 +35,188 @@ static unsigned next_power_of_2(unsigned size) {
     return size + 1;
 }
 
-// static unsigned next_power_of_2(unsigned size) {
-//     unsigned power = 1;
-//     while (power < size) {
-//         power <<= 1;
-//     }
-//     return power;
-// }
+void* split_node(MemoryNode *parent) {
+    unsigned childIdx = parent->nodeIndex * 2 + 1;
+    parent->leftChild = (MemoryNode *)((char *)parent + childIdx * sizeof(MemoryNode));
 
-void create_children(node_t *parent){
-    unsigned idx = parent->index * 2 + 1;
+    if ((uint64_t) parent->leftChild >= MEM_START) {
+        return NULL;
+    }
+    parent->leftChild->nodeIndex = childIdx;
+    parent->leftChild->blockSize = parent->blockSize / 2;
+    parent->leftChild->memoryBlock = parent->memoryBlock;
+    parent->leftChild->currentState = MEM_EMPTY;
 
-    parent->left = parent + idx;
-    if ((uint64_t)parent->left >= MEM_START) return;
-                                                                            
-    parent->left->index = idx;
-    parent->left->size = parent->size / 2;
-    parent->left->mem_ptr = parent->mem_ptr;
-    parent->left->state = FREE;
+    uint64_t offset = (uint64_t)(parent->memoryBlock) + (parent->blockSize / 2);
 
-    parent->right = parent + idx + 1;
-    if ((uint64_t)parent->right >= MEM_START) return;
-
-    parent->right->index = idx + 1;
-    parent->right->size = parent->size / 2;
-    parent->right->mem_ptr = (void *)((uint64_t)(parent->mem_ptr) + (parent->size / 2));
-    parent->right->state = FREE;
+    parent->rightChild = (MemoryNode *)((char *)parent + (childIdx + 1) * sizeof(MemoryNode));
+    if ((uint64_t) parent->rightChild >= MEM_START) {
+        return NULL;
+    }
+    parent->rightChild->nodeIndex = childIdx + 1;
+    parent->rightChild->blockSize = parent->blockSize / 2;
+    parent->rightChild->memoryBlock = (void *)offset;
+    parent->rightChild->currentState = MEM_EMPTY;
+    return NULL;
 }
 
-void update_state(node_t *node){
-    if (!node->right || !node->left) {
-        node->state = FREE;
+void update_node_state(MemoryNode *node) {
+    if (!node->leftChild || !node->rightChild) {
+        node->currentState = MEM_EMPTY;
         return;
     }
-    if (node->left->state == FULL && node->right->state == FULL){
-        node->state = FULL;
-    }else if (node->left->state == DIVIDED || node->right->state == DIVIDED || node->left->state == FULL || node->right->state == FULL){
-        node->state = DIVIDED;
-    }
-    else{
-        node->state = FREE;
+    if (node->leftChild->currentState == MEM_FULL && node->rightChild->currentState == MEM_FULL) {
+        node->currentState = MEM_FULL;
+    } else if (node->leftChild->currentState != MEM_EMPTY || node->rightChild->currentState != MEM_EMPTY) {
+        node->currentState = MEM_SPLIT;
+    } else {
+        node->currentState = MEM_EMPTY;
     }
 }
 
-int rec_free(node_t *node, void *ptr){
-    if (!node->left && !node->right && node->state == FULL && node->mem_ptr == ptr){
-        node->state = FREE;
-        memory_allocated -= node->size;
-        return 0;
-    }
-
-    int to_ret = -1;
-    if (node->left && (uint64_t)node->left->mem_ptr <= (uint64_t)ptr){
-        to_ret = rec_free(node->left, ptr);
-    }else if (node->right){
-        to_ret = rec_free(node->right, ptr);
-    }
-
-    update_state(node);
-    if (node->state == FREE){
-        node->left = NULL;
-        node->right = NULL;
-    }
-
-    return to_ret;
-}
-
-void mem_free(void *ptr){
-    if(root) rec_free(root, ptr);
-}
-
-void mem_init(void *ptr, int s){
-    root = (node_t *)ptr;
-    root->index = 0;
-    root->size = s;
-    root->state = FREE;
-    root->mem_ptr = (void *)MEM_START;
-}
-
-void * mem_alloc(uint32_t s){
-    if(s > root->size){
+void *allocate_recursive(MemoryNode *node, uint32_t size) {
+    if (node->currentState == MEM_FULL) {
         return NULL;
     }
 
-    if(s < MIN_ALLOC){ 
-        s = MIN_ALLOC;
+    if (node->leftChild || node->rightChild) {
+        void *allocated = allocate_recursive(node->leftChild, size);
+        if (!allocated) {
+            allocated = allocate_recursive(node->rightChild, size);
+        }
+        update_node_state(node);
+        return allocated;
     }
 
-    if(!POW_2(s)){
-        s = next_power_of_2(s);
+    if (size > node->blockSize) {
+        return NULL;
     }
 
-    return rec_alloc(root, s);
+    if (node->blockSize / 2 >= size) {
+        split_node(node);
+        void *allocated = allocate_recursive(node->leftChild, size);
+        update_node_state(node);
+        return allocated;
+    }
+
+    node->currentState = MEM_FULL;
+    allocatedMemory += size;
+    return node->memoryBlock;
 }
 
-void *rec_alloc(node_t *parent, unsigned s){
-    if(parent->state == FULL) return NULL;
-
-    if(parent->left || parent->right){
-        void * aux = rec_alloc(parent->left, s);
-        if(!aux){ 
-            aux = rec_alloc(parent->right, s);
-        }
-        update_state(parent);
-        return aux;
-    }else{
-        if (s > parent->size){
-            return NULL;
-        }
-
-        if(parent->size / 2 >= s){
-            create_children(parent);
-            void * aux = rec_alloc(parent->left, s);
-            update_state(parent);
-            return aux;
-        }
-        
-        parent->state = FULL;
-        memory_allocated += s;
-        return parent->mem_ptr;
+void *mem_alloc(uint32_t size) {
+    if (size > rootNode->blockSize) {
+        return NULL;
     }
+
+    if (size < MIN_ALLOC_UNIT) {
+        size = MIN_ALLOC_UNIT;
+    }
+
+    if (!POWER_OF_2(size)) {
+        size = align_size(size);
+    }
+
+    return allocate_recursive(rootNode, size);
+}
+
+int free_recursive(MemoryNode *node, void *block) {
+    if (node->leftChild || node->rightChild) {
+        int result;
+        if (node->rightChild && (uint64_t)node->rightChild->memoryBlock > (uint64_t)block) {
+            result = free_recursive(node->leftChild, block);
+        } else {
+            result = free_recursive(node->rightChild, block);
+        }
+
+        update_node_state(node);
+
+        if (node->currentState == MEM_EMPTY) {
+            node->leftChild = NULL;
+            node->rightChild = NULL;
+        }
+        return result;
+    }
+
+    if (node->currentState == MEM_FULL && node->memoryBlock == block) {
+        node->currentState = MEM_EMPTY;
+        allocatedMemory -= node->blockSize;
+        return 0;
+    }
+    return -1;
+}
+
+void mem_free(void *ptr) {
+    free_recursive(rootNode, ptr);
+}
+
+void mem_init(void *base, uint32_t size) {
+    rootNode = (MemoryNode *)base;
+    rootNode->nodeIndex = 0;
+    rootNode->blockSize = size;
+    rootNode->currentState = MEM_EMPTY;
+    rootNode->memoryBlock = (void *)MEM_START;
+}
+
+char *mem_state() {
+    char *stateBuffer = mem_alloc(2048);
+    if (!stateBuffer) {
+        return NULL;
+    }
+
+    int offset = 0;
+    strcpy(stateBuffer + offset, "Memory Status Report:\n", strlen("Memory Status Report:\n"));
+    offset += strlen("Memory Status Report:\n");
+
+    strcpy(stateBuffer + offset, "Total: ", strlen("Total: "));
+    offset += strlen("Total: ");
+    intToStr(rootNode->blockSize, stateBuffer + offset);
+    offset += strlen(stateBuffer + offset);
+    stateBuffer[offset++] = '\n';
+
+    strcpy(stateBuffer + offset, "Used: ", strlen("Used: "));
+    offset += strlen("Used: ");
+    intToStr(allocatedMemory, stateBuffer + offset);
+    offset += strlen(stateBuffer + offset);
+    stateBuffer[offset++] = '\n';
+
+    strcpy(stateBuffer + offset, "Free: ", strlen("Free: "));
+    offset += strlen("Free: ");
+    intToStr(rootNode->blockSize - allocatedMemory, stateBuffer + offset);
+    offset += strlen(stateBuffer + offset);
+    stateBuffer[offset++] = '\n';
+
+    recursive_print(rootNode, 0, stateBuffer, &offset);
+    return stateBuffer;
+}
+
+static void recursive_print(MemoryNode *node, int depth, char *buffer, int *offset) {
+    if (!node) return;
+
+    for (int i = 0; i < depth; i++) {
+        buffer[(*offset)++] = ' ';
+    }
+
+    strcpy(buffer + *offset, "Node ", strlen("Node "));
+    (*offset) += strlen("Node ");
+    intToStr(node->nodeIndex, buffer + *offset);
+    (*offset) += strlen(buffer + *offset);
+
+    strcpy(buffer + *offset, " | BlockSize: ", strlen(" | BlockSize: "));
+    (*offset) += strlen(" | BlockSize: ");
+    intToStr(node->blockSize, buffer + *offset);
+    (*offset) += strlen(buffer + *offset);
+
+    strcpy(buffer + *offset, " | State: ", strlen(" | State: "));
+    (*offset) += strlen(" | State: ");
+    strcpy(buffer + *offset,
+           node->currentState == MEM_EMPTY ? "EMPTY" :
+           node->currentState == MEM_SPLIT ? "SPLIT" : "FULL", 
+           strlen(node->currentState == MEM_EMPTY ? "EMPTY" :
+                  node->currentState == MEM_SPLIT ? "SPLIT" : "FULL"));
+    (*offset) += strlen(buffer + *offset);
+    buffer[(*offset)++] = '\n';
+
+    recursive_print(node->leftChild, depth + 1, buffer, offset);
+    recursive_print(node->rightChild, depth + 1, buffer, offset);
 }

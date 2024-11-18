@@ -349,26 +349,16 @@ uint64_t cmd_charsizeminus(uint64_t argc, char *argv[]){
 	return 0;
 }
 
-void handleSpecialCommands(char c)
-{
-	if (c == PLUS)
-	{
+void handleSpecialCommands(char c){
+	if (c == PLUS){
 		cmd_charsizeplus(0, NULL);
-	}
-	else if (c == MINUS)
-	{
+	} else if (c == MINUS){
 		cmd_charsizeminus(0, NULL);
-	}
-	else if (isUpperArrow(c))
-	{
+	} else if (isUpperArrow(c)){
 		historyCaller(-1);
-	}
-	else if (isDownArrow(c))
-	{
+	} else if (isDownArrow(c)){
 		historyCaller(1);
-	}
-	else
-	{
+	} else {
 		line[linePos++] = c;
 		printc(c);
 	}
@@ -397,7 +387,6 @@ uint64_t cmd_eliminator(uint64_t argc, char *argv[]){
 		int playAgain = 1;
 		while (playAgain)
 		{
-			// playAgain because we need to know if the game should be restarted
 			playAgain = eliminator(numPlayers);
 		}
 	}
