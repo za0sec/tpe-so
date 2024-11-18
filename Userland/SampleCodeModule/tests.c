@@ -39,6 +39,9 @@ typedef struct MM_rq {
 
 int64_t prio[TOTAL_PROCESSES] = {LOWEST, MEDIUM, HIGHEST};
 
+static void wait_03(uint64_t pid1, uint64_t pid2);
+static void wait_30(uint64_t pid1, uint64_t pid2);
+
 uint64_t test_mm(uint64_t argc, char *argv[]) {
 
   mm_rq mm_rqs[MAX_BLOCKS];
@@ -217,6 +220,18 @@ void second_test_process(){
   }
 }
 
+static void wait_03(uint64_t pid1, uint64_t pid2){
+    wait(5);
+    sys_nice(pid1, 0);
+    sys_nice(pid2, 3);
+}
+
+static void wait_30(uint64_t pid1, uint64_t pid2){
+    wait(5);
+    sys_nice(pid1, 3);
+    sys_nice(pid2, 0);
+}
+
 void run_test_processes(){
   write_string("Running test_processes\n Press 1 or 2 to change process priorities or C to stop.", strlen("Running test_processes\n Press 1 or 2 to change process priorities or C to stop."));
   wait(99);
@@ -239,12 +254,8 @@ void run_test_processes(){
       wait(99);
       sys_unblock(pid1);
       sys_unblock(pid2);
-      wait(5);
-      sys_nice(pid1, 0);
-      sys_nice(pid2, 3);
-      wait(5);
-      sys_nice(pid1, 0);
-      sys_nice(pid2, 3);
+      wait_03(pid1,pid2);
+      wait_03(pid1,pid2);
     } else if(c == '2'){
       sys_nice(pid1, 3);
       sys_nice(pid2, 0);
@@ -255,12 +266,8 @@ void run_test_processes(){
       wait(99);
       sys_unblock(pid1);
       sys_unblock(pid2);
-      wait(5);
-      sys_nice(pid1, 3);
-      sys_nice(pid2, 0);
-      wait(5);
-      sys_nice(pid1, 3);
-      sys_nice(pid2, 0);
+      wait_30(pid1,pid2);
+      wait_30(pid1,pid2);
     } else if(c == 'C' || c == 'c' || c == 'Q' || c == 'q'){
       sys_kill(pid1);
       sys_kill(pid2);
