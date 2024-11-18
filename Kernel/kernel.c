@@ -30,7 +30,7 @@ static const uint64_t PageSize = 0x1000;
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
-static void * const memManagerModuleAddress = (void*)0x700000;
+static void * const memManagerModuleAddress = (void*)0x300000;
 
 typedef int (*EntryPoint)();
 
@@ -55,7 +55,6 @@ void * initializeKernelBinary(){
 	loadModules(&endOfKernelBinary, moduleAddresses);
 
 	clearBSS(&bss, &endOfKernel - &bss);
-	mem_init(memManagerModuleAddress, MEM_SIZE);
 	return getStackBase();
 }
 
@@ -82,6 +81,7 @@ int main(){
 	load_idt();
 
 	// Orden muy delicado!
+	mem_init(memManagerModuleAddress, MEM_SIZE);
 	init_semaphores();
 	init_pipes();					// Usa semaforos
 	init_file_descriptors();		// Usa pipes

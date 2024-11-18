@@ -4,7 +4,7 @@
 #include <utils.h>
 #include <videoDriver.h>
 
-#define MIN_ALLOC 16
+#define MIN_ALLOC 8
 
 enum StateMem {
     FULL, EMPTY, SPLIT
@@ -161,8 +161,8 @@ int freeRec(node *actual, void *block) {
 void mem_free(void *ptr) {
     int i = freeRec(root, ptr);
     if (i == -1) {
-        return;
-    }
+         return;
+     }
 }
 
 void mem_init(void * ptr, uint32_t s) {
