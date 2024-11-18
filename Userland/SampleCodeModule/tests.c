@@ -58,6 +58,9 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 
     // Request as many blocks as we can
     while (rq < MAX_BLOCKS && total < max_memory) {
+      write_string("Requesting ", strlen("Requesting "));
+      printDec(mm_rqs[rq].size);
+      write_string(" bytes\n", strlen(" bytes\n"));
       mm_rqs[rq].size = GetUniform(max_memory - total - 1) + 1;
       mm_rqs[rq].address = sys_mem_alloc(mm_rqs[rq].size);
 

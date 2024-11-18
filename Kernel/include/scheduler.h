@@ -6,7 +6,11 @@
 #include <pcb_queue.h>
 #include <stdint.h>
 
-#define STACK_SIZE 4096
+#ifndef STACK_SIZE_VALUE
+#define STACK_SIZE_VALUE 4096
+#endif
+
+#define STACK_SIZE STACK_SIZE_VALUE
 #define TOTAL_QUEUES 5
 #define HIGHEST_QUEUE 3
 #define AGING_THRESHOLD 100

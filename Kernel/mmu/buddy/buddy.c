@@ -109,7 +109,6 @@ void *allocRec(node *actual, uint32_t size) {
     return NULL;
 }
 
-
 void *mem_alloc(uint32_t s) {
     if (s > root->size) {
         return NULL;
@@ -125,7 +124,6 @@ void *mem_alloc(uint32_t s) {
     void *ptr = allocRec(root, s);
     return ptr;
 }
-
 
 int freeRec(node *actual, void *block) {
     if (actual->left != NULL || actual->right != NULL) {
