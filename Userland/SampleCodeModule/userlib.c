@@ -47,8 +47,6 @@ uint64_t create_process_foreground(int priority, program_t program, uint64_t arg
 		}
 	}
 
-	
-
 	sys_create_process_set_fd(fd_ids_array, fd_count);
 
 	uint64_t pid = sys_create_process_foreground(priority, program, argc, argv);

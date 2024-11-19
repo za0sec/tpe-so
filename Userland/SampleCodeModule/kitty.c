@@ -38,48 +38,15 @@ void newLineUsername();
 int isUpperArrow(char c);
 int isDownArrow(char c);
 
-
-void printHelp()
-{
-	printsColor("\n\n    >'help' or 'ls'     - displays this shell information", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >whoami             - display current username", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >time               - display current time", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >clear              - clear the display", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >(+)                - increase font size (scaled)", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >(-)                - decrease font size (scaled)", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >registersinfo      - print current register values", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >zerodiv            - testeo divide by zero exception", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >invopcode          - testeo invalid op code exception", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >whoami             - prints current username", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >memtest            - test memory manager", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >schetest           - test scheduler", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >priotest           - priority scheduler", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >runtestprocesses   - run test processes", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >testsync           - test synchro", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >ps                 - list all processes", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >cat                - cat file", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >loop               - prints short greeting and process PID", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >kill [PID]         - kill specified process", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >block [PID]        - block specified process", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >unblock [PID]      - block specified process", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >nice [PID] [prio]  - change a given's process priority", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >philo              - test philosophers", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >wc                 - counts the total amount of input lines", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >filter             - filt all input vocals", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >mem                - print memory state\n", MAX_BUFF, LIGHT_BLUE);
-	printsColor("\n    >exit               - exit PIBES OS\n", MAX_BUFF, LIGHT_BLUE);
-
-	printc('\n');
-}
 const char *commands[] = {"undefined", "help", "ls", "time", "clear", "registersinfo", "zerodiv",
                          "invopcode", "setusername", "whoami", "exit", "ascii", "eliminator", "memtest",
                          "schetest","priotest", "runtestprocesses", "testsync", "ps", "cat", "loop", 
-						 "kill", "philo", "wc", "filter", "block", "unblock", "nice", "mem"};
+						 "kill", "philo", "wc", "filter", "block", "unblock", "nice", "mem", "testchildren"};
 
 static program_t commands_ptr[MAX_ARGS] = {cmd_undefined, cmd_help, cmd_help, cmd_time, cmd_clear, cmd_registersinfo, cmd_zeroDiv,
                                           cmd_invOpcode, cmd_setusername, cmd_whoami, cmd_exit, cmd_ascii, cmd_eliminator, cmd_memtest,
                                           cmd_schetest, cmd_priotest, cmd_run_test_processes, cmd_test_sync, cmd_ps, cmd_cat, cmd_loop, 
-										  cmd_kill, cmd_philo, cmd_wc, cmd_filter, cmd_block, cmd_unblock, cmd_nice, cmd_mem};
+										  cmd_kill, cmd_philo, cmd_wc, cmd_filter, cmd_block, cmd_unblock, cmd_nice, cmd_mem, cmd_test_children};
 
 void kitty(){
 	welcome();
@@ -156,12 +123,13 @@ void pipe_command(){
 	uint64_t second_pipe_fds[10] = {0};
 	first_pipe_fds[1] = fd_id;
 	second_pipe_fds[0] = fd_id;
-	second_pipe_fds[1] = 1;
+	second_pipe_fds[1] = 1;				// stdout
 	
 	uint64_t pid1 = create_process_foreground(0, commands_ptr[command_idx], 0, NULL, first_pipe_fds, 2);
-	create_process(0, commands_ptr[after_pipe_idx], 0, NULL, second_pipe_fds, 2);
+	uint64_t pid2 = create_process(0, commands_ptr[after_pipe_idx], 0, NULL, second_pipe_fds, 2);
 	
 	sys_wait_pid(pid1);
+	sys_wait_pid(pid2);
 }
 
 void printPrompt()
@@ -292,8 +260,40 @@ uint64_t cmd_priotest(uint64_t argc, char *argv[]){
 }
 
 uint64_t cmd_help(uint64_t argc, char *argv[]){
-	printsColor("\n\n===== Listing a preview of available PIBES commands =====\n", MAX_BUFF, GREEN);
-	printHelp();
+	// write_string("\n\n===== Listing a preview of available PIBES commands =====\n", MAX_BUFF);
+	// write_string("\n\n    >'help' or 'ls'     - displays this shell information", MAX_BUFF);
+	// write_string("\n    >whoami             - display current username", MAX_BUFF);
+	// write_string("\n    >time               - display current time", MAX_BUFF);
+	// write_string("\n    >clear              - clear the display", MAX_BUFF);
+	// write_string("\n    >(+)                - increase font size (scaled)", MAX_BUFF);
+	// write_string("\n    >(-)                - decrease font size (scaled)", MAX_BUFF);
+	// write_string("\n    >registersinfo      - print current register values", MAX_BUFF);
+	// write_string("\n    >zerodiv            - testeo divide by zero exception", MAX_BUFF);
+	// write_string("\n    >invopcode          - testeo invalid op code exception", MAX_BUFF);
+	// write_string("\n    >whoami             - prints current username", MAX_BUFF);
+	// write_string("\n    >memtest            - test memory manager", MAX_BUFF);
+	// write_string("\n    >schetest           - test scheduler", MAX_BUFF);
+	// write_string("\n    >priotest           - priority scheduler", MAX_BUFF);
+	// write_string("\n    >runtestprocesses   - run test processes", MAX_BUFF);
+	// write_string("\n    >testsync           - test synchro", MAX_BUFF);
+	// write_string("\n    >ps                 - list all processes", MAX_BUFF);
+	// write_string("\n    >cat                - cat file", MAX_BUFF);
+	// write_string("\n    >loop               - prints short greeting and process PID", MAX_BUFF);
+	// write_string("\n    >kill [PID]         - kill specified process", MAX_BUFF);
+	// write_string("\n    >block [PID]        - block specified process", MAX_BUFF);
+	// write_string("\n    >unblock [PID]      - unblock specified process", MAX_BUFF);
+	// write_string("\n    >nice [PID] [prio]  - change a given's process priority", MAX_BUFF);
+	// write_string("\n    >philo              - test philosophers", MAX_BUFF);
+	// write_string("\n    >wc                 - counts the total amount of input lines", MAX_BUFF);
+	// write_string("\n    >filter             - filt all input vocals", MAX_BUFF);
+	// write_string("\n    >mem                - print memory state\n", MAX_BUFF);
+	// write_string("\n    >testchildren                - test children processes\n", MAX_BUFF);
+	// write_string("\n    >exit               - exit PIBES OS\n\n", MAX_BUFF);
+	char *help = "===== Listing a preview of available PIBES commands =====\n\n>'help' or 'ls'     - displays this shell information\n>whoami             - display current username\n>time               - display current time\n>clear              - clear the display\n>(+)                - increase font size (scaled)\n>(-)                - decrease font size (scaled)\n>registersinfo      - print current register values\n>zerodiv            - testeo divide by zero exception\n>invopcode          - testeo invalid op code exception\n>whoami             - prints current username\n>memtest            - test memory manager\n>schetest           - test scheduler\n>priotest           - priority scheduler\n>runtestprocesses   - run test processes\n>testsync           - test synchro\n>ps                 - list all processes\n>cat                - cat file\n>loop               - prints short greeting and process PID\n>kill [PID]         - kill specified process\n>block [PID]        - block specified process\n>unblock [PID]      - unblock specified process\n>nice [PID] [prio]  - change a given's process priority\n>philo              - test philosophers\n>wc                 - counts the total amount of input lines\n>filter             - filt all input vocals\n>mem                - print memory state\n>exit               - exit PIBES OS\n";
+	for(int i = 0; i < strlen(help); i++){
+		write_char(help[i]);
+	}
+	write_string("\n    >testchildren                - test children processes\n", MAX_BUFF);
 	return 0;
 }
 
@@ -454,8 +454,7 @@ uint64_t cmd_test_sync(uint64_t argc, char *argv[]) {
 	return 0;
 }
 
-void newLineUsername()
-{
+void newLineUsername(){
 	int i;
 	for (i = 0; i < USERNAME_SIZE-1 && line[i] != '\0'; i++) {
 		username[i] = line[i];
@@ -479,35 +478,20 @@ void welcome()
 {
 	char c;
 	prints("\nPlease enter your username: ", MAX_BUFF);
-	while (!strcmp(username, "user"))
-	{
+	while (!strcmp(username, "user")){
 		c = getChar();
 		printLine(c, strcmp(username, "user"));
 	}
 
-	for (int i = 0; pibes[i] != NULL; i++)
-	{
+	for (int i = 0; pibes[i] != NULL; i++){
 		printsColor(pibes[i], MAX_BUFF, GREEN);
 		printc('\n');
 	}
 
-	// NoteType windowsXPmelody[] = {
-	// 	{622, 300}, // D#5
-	// 	{0, 25},
-	// 	{466, 300}, // A#4
-	// 	{0, 50},
-	// 	{415, 450}, // G#4
-	// 	{0, 25},
-	// 	{622, 250}, // D#5
-	// 	{466, 900}	// A#4
-	// };
-
-	// playMelody(windowsXPmelody, (sizeof(windowsXPmelody) / sizeof(NoteType)));
-
 	printsColor("\n    Welcome to PIBES OS, an efficient and simple operating system\n", MAX_BUFF, GREEN);
 	printsColor("    Developed by the PIBES team\n", MAX_BUFF, GREEN);
 	printsColor("    Here's a list of available commands\n", MAX_BUFF, GREEN);
-	printHelp();
+	cmd_help(0, NULL);
 }
 
 uint64_t cmd_philo(uint64_t argc, char *argv[]){
@@ -574,4 +558,27 @@ uint64_t cmd_mem(uint64_t argc, char *argv[]){
 	write_string(mem_state, strlen(mem_state));
 	sys_mem_free(mem_state);
 	return 0;
+}
+
+uint64_t cmd_test_children(uint64_t argc, char *argv[]){
+	create_process(0, (program_t)child0, 0, NULL, NULL, 0);
+	return 1;
+}
+
+void child0(uint64_t argc, char *argv[]){
+	create_process(0, (program_t)child1, 0, NULL, NULL, 0);
+	sys_wait(300);
+	write_string("Child 0 is dead\n", MAX_BUFF);
+}
+
+void child1(uint64_t argc, char *argv[]){
+	create_process(0, (program_t)child2, 0, NULL, NULL, 0);
+	sys_wait(300);
+	write_string("Child 1 is dead\n", MAX_BUFF);
+}
+
+void child2(uint64_t argc, char *argv[]){
+	sys_block(sys_getPID());
+	sys_wait(300);
+	write_string("Child 2 is dead\n", MAX_BUFF);
 }

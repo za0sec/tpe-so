@@ -27,6 +27,7 @@ typedef struct pcb {
     } state;
     open_file_t **fd_table;
     q_adt waiting_list;
+    int p_pid; 
 } pcb_t;
 
 
