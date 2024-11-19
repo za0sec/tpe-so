@@ -107,6 +107,8 @@ uint64_t schedule(void *running_process_rsp){
                 unblock_process_from_queue(current_process.waiting_list);
             }
 
+            unblock_process(current_process.p_pid);
+
             break;
 
         default:            // se estaba ejecutando el proceso halt
@@ -158,22 +160,22 @@ void apply_aging(){
 }
 
 uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]){
-    foreground_pid = create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count);
+    foreground_pid = create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count, current_process.pid);
     return foreground_pid;
 }
 
 uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]){
-    return create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count);
+    return create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count, current_process.pid);
 }
 
 // Retorna -1 por error
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count){
-    return create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count);
+    return create_process_state(priority, program, READY, argc, argv, fd_ids, fd_count, 0);
 }
 
 // Si le pasas fd_count < 2, se le asignan los fd de stdin y stdout!
 // Retorna -1 por error
-uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count){    
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count, int p_pid){    
     void *base_pointer = mem_alloc(STACK_SIZE);
     
     if(base_pointer == NULL){
@@ -197,7 +199,8 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
                         0,                  //used_quantum
                         state,              //state
                         fd_table,
-                        waiting_list        //waiting_list
+                        waiting_list,        //waiting_list
+                        p_pid
                         };
 
     add_priority_queue(new_process);   
@@ -255,7 +258,8 @@ pcb_t create_process_halt(){
                         0,                  //used_quantum
                         HALT,               //state
                         NULL,               //fd_table
-                        NULL                //waiting_list
+                        NULL,                //waiting_list
+                        0
                         };
       
     return new_process;
@@ -487,6 +491,7 @@ int find_process_in_priority_queues(uint64_t pid) {
     return 0;
 }
 
+
 int find_process_in_queue(q_adt q, uint64_t pid) {
     size_t size = get_size(q);
     int found = 0;
@@ -545,16 +550,22 @@ void wait_pid(uint64_t pid) {
         // El PID esta mal o ya termino!!
         return;
     }
+
     pcb_t process = get_process_by_pid(pid);
+
+    if(process.pid < 0 || current_process.pid != process.p_pid){
+        return;
+    }
+
     block_current_process_to_queue(process.waiting_list);
 }
 
 
 char *list_processes() {
     // Tamaño aproximado de cada línea (PID + PRIORITY + STATE + BASE POINTER + separadores y newline)
-    const int line_size = 68;
-    const int header_size = 68; // tamaño aproximado del header
-    char *header = "PID PRIORITY STATE    BASE POINTER\n";
+    const int line_size = 100;
+    const int header_size = 100; // tamaño aproximado del header
+    char *header = "PID PRIORITY STATE    BASE POINTER PPID\n";
     
     // Calcula el tamaño necesario para almacenar todos los procesos
     int total_processes = 1; // Incluir el proceso actual
@@ -610,12 +621,15 @@ void format_process_line(char *line, pcb_t *process) {
     char pid_str[10];
     char priority_str[5];
     char base_pointer_str[10];
+    char ppid_str[10];
     char *state_str;
 
     // Convierte los enteros a cadena
     intToStr(process->pid, pid_str);
+    intToStr(process->p_pid, ppid_str);
     intToStr(process->priority, priority_str);
     intToStr((int)(uintptr_t)process->base_sp, base_pointer_str);
+    
 
     // Determina la cadena de estado
     switch (process->state) {
@@ -626,7 +640,7 @@ void format_process_line(char *line, pcb_t *process) {
         case HALT: state_str = "HALT"; break;
     }
 
-    // Construye la línea en el formato deseado: "PID   PRIORITY   STATE\n"
+    // Construye la línea en el formato deseado: "PID   PRIORITY   STATE PPID\n"
     int offset = 0;
 
     // Copia el PID en la línea
@@ -653,6 +667,10 @@ void format_process_line(char *line, pcb_t *process) {
     // Copia el BASE POINTER en la línea
     strcpy(line + offset, base_pointer_str, strlen(base_pointer_str));
     offset += strlen(base_pointer_str);
+    line[offset++] = ' ';
+
+    strcpy(line + offset, ppid_str, strlen(ppid_str));
+    offset += strlen(ppid_str);
     line[offset++] = ' ';
 
     // Añade el carácter de nueva línea

@@ -34,7 +34,7 @@ uint64_t userspace_create_process_foreground(int priority, program_t program, ui
 uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]);
 uint64_t create_process(int priority, program_t program, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
 uint64_t create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[], uint64_t fd_ids[MAX_FD], uint64_t fd_count);
-uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count);
+uint64_t create_process_state(int priority, program_t program, int state, uint64_t argc, char *argv[], uint64_t *fd_ids, uint64_t fd_count, int p_pid);
 int find_process_in_queue(q_adt q, uint64_t pid);
 int find_process_in_priority_queues(uint64_t pid);
 pcb_t get_process_by_pid(uint64_t pid);
