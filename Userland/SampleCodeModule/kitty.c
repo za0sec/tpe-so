@@ -567,18 +567,27 @@ uint64_t cmd_test_children(uint64_t argc, char *argv[]){
 
 void child0(uint64_t argc, char *argv[]){
 	create_process(0, (program_t)child1, 0, NULL, NULL, 0);
-	sys_wait(300);
-	write_string("Child 0 is dead\n", MAX_BUFF);
+	// sys_wait(300);
+	// write_string("Child 0 is dead\n", MAX_BUFF);
+	while(1){
+		__asm__("hlt");
+	}
 }
 
 void child1(uint64_t argc, char *argv[]){
 	create_process(0, (program_t)child2, 0, NULL, NULL, 0);
-	sys_wait(300);
-	write_string("Child 1 is dead\n", MAX_BUFF);
+	// sys_wait(300);
+	// write_string("Child 1 is dead\n", MAX_BUFF);
+	while(1){
+		__asm__("hlt");
+	}
 }
 
 void child2(uint64_t argc, char *argv[]){
 	sys_block(sys_getPID());
-	sys_wait(300);
-	write_string("Child 2 is dead\n", MAX_BUFF);
+	// sys_wait(300);
+	// write_string("Child 2 is dead\n", MAX_BUFF);
+	while(1){
+		__asm__("hlt");
+	}
 }

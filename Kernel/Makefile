@@ -2,6 +2,13 @@ include Makefile.inc
 
 KERNEL=kernel.bin
 
+ifeq ($(filter buddy,$(MAKECMDGOALS)),buddy)
+    BUDDY=YES
+else
+    BUDDY=NO
+endif
+
+
 ifeq ($(BUDDY), YES)
 SOURCES_ALL=$(wildcard *.c drivers/*.c interrupt/*.c scheduler/*.c mmu/buddy/*.c)
 else
@@ -39,5 +46,6 @@ clean:
 	rm -rf asm/*.o *.o */*.o *.bin *.elf */*/*.o
 
 buddy: clean $(KERNEL)
+all: clean $(KERNEL)
 
 .PHONY: all clean buddy

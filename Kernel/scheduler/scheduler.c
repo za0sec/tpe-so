@@ -88,27 +88,7 @@ uint64_t schedule(void *running_process_rsp){
             break;
 
         case TERMINATED:
-            if(current_process.pid == foreground_pid && current_process.fd_table != NULL){  
-                current_process.fd_table[1]->write(current_process.fd_table[1]->resource, -1);
-                foreground_pid = -1;
-            }
-        
-            if(current_process.fd_table != NULL){
-                for(int i = 0; i < MAX_FD; i++){
-                    if(current_process.fd_table[i] != NULL){
-                        fd_close(current_process.fd_table[i]->id);
-                    }
-                }
-            }
-            
-            mem_free(current_process.base_sp);   
-    
-            while(has_next(current_process.waiting_list)){
-                unblock_process_from_queue(current_process.waiting_list);
-            }
-
-            unblock_process(current_process.p_pid);
-
+            terminate_process(current_process);
             break;
 
         default:            // se estaba ejecutando el proceso halt
@@ -161,11 +141,14 @@ void apply_aging(){
 
 uint64_t userspace_create_process_foreground(int priority, program_t program, uint64_t argc, char *argv[]){
     foreground_pid = create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count, current_process.pid);
+    add(current_process.children_list, get_process_by_pid(foreground_pid));
     return foreground_pid;
 }
 
 uint64_t userspace_create_process(int priority, program_t program, uint64_t argc, char *argv[]){
-    return create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count, current_process.pid);
+    uint64_t pid = create_process_state(priority, program, READY, argc, argv, userspace_process_creation_fd_ids, userspace_process_creation_fd_count, current_process.pid);
+    add(current_process.children_list, get_process_by_pid(pid));
+    return pid;
 }
 
 // Retorna -1 por error
@@ -184,7 +167,7 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
 
     void * stack_pointer = fill_stack((uintptr_t)base_pointer, initProcessWrapper, program, argc, argv);
 
-    q_adt waiting_list = new_q();
+    q_adt children_list = new_q();
     
     open_file_t **fd_table = fd_open_fd_table(fd_ids, fd_count);
 
@@ -195,12 +178,12 @@ uint64_t create_process_state(int priority, program_t program, int state, uint64
                         base_pointer,       //base_sp
                         stack_pointer,      //rsp
                         priority,           //priority
-                        assigned_quantum,    //assigned_quantum
+                        assigned_quantum,   //assigned_quantum
                         0,                  //used_quantum
                         state,              //state
-                        fd_table,
-                        waiting_list,        //waiting_list
-                        p_pid
+                        fd_table,           //fd_table
+                        children_list,      //children_list
+                        p_pid               //p_pid
                         };
 
     add_priority_queue(new_process);   
@@ -258,8 +241,8 @@ pcb_t create_process_halt(){
                         0,                  //used_quantum
                         HALT,               //state
                         NULL,               //fd_table
-                        NULL,                //waiting_list
-                        0
+                        NULL,               //children_list
+                        0                   //p_pid
                         };
       
     return new_process;
@@ -324,25 +307,63 @@ uint64_t kill_process(uint64_t pid){
         __asm__ ("int $0x20");                 // TimerTick para llamar a schedule de nuevo
         return 1;
     } else if( (process = find_dequeue_priority(pid)).pid > 0 || (process = find_dequeue_pid(all_blocked_queue, pid)).pid > 0 ){
-        mem_free(process.base_sp);
-        
-        if(process.fd_table != NULL){
-            for(int i = 0; i < MAX_FD; i++){
-                if(process.fd_table[i] != NULL){
-                    fd_close(process.fd_table[i]->id);
-                }
-            }
-        }
-    
-        while(has_next(process.waiting_list)){
-            unblock_process_from_queue(process.waiting_list);
-        }
-
+        terminate_process(process);
         return 1;
     } else {
         return 0;
     }
     return 0;
+}
+
+void terminate_process(pcb_t process){
+    if(process.pid == foreground_pid && process.fd_table != NULL){  
+        process.fd_table[1]->write(process.fd_table[1]->resource, -1);
+        foreground_pid = -1;
+    }
+      
+    if(process.fd_table != NULL){
+        for(int i = 0; i < MAX_FD; i++){
+            if(process.fd_table[i] != NULL){
+                fd_close(process.fd_table[i]->id);
+            }
+        }
+    }
+            
+    pcb_t parent = get_process_by_pid(process.p_pid);
+
+    // Establezco al padre de mis hijos como MI padre.
+    if(parent.pid >= 0){
+        size_t size = get_size(process.children_list);
+        for(int i = 0; i < size; i++){
+            pcb_t aux = dequeue(process.children_list);
+            
+            pcb_t child = find_dequeue_priority(aux.pid);
+
+            if (child.pid > 0){
+                child.p_pid = process.p_pid;
+                add_priority_queue(child);
+            } else {
+                child = find_dequeue_pid(all_blocked_queue, aux.pid);
+                if (child.pid > 0){
+                    child.p_pid = process.p_pid;
+                    add(all_blocked_queue, child);
+                }
+            }
+
+            if (parent.pid != 0){
+                add(parent.children_list, aux);
+            }
+        }
+    }
+
+    // Me quito de la lista de hijos de mi padre, desbloqueo a mi padre.
+    if(parent.pid > 0){
+        find_dequeue_pid(parent.children_list, process.pid);
+        unblock_process(process.p_pid);
+    }
+    
+    mem_free(process.base_sp);
+    free_q(process.children_list);
 }
 
 void block_process_pid(uint64_t pid){
@@ -544,20 +565,13 @@ pcb_t get_process_by_pid(uint64_t pid) {
     return return_null_pcb();
 }
 
-
 void wait_pid(uint64_t pid) {
-    if (!is_valid_pid(pid)) {
+    if (!is_valid_pid(pid) || !find_process_in_queue(current_process.children_list, pid)) {
         // El PID esta mal o ya termino!!
         return;
     }
 
-    pcb_t process = get_process_by_pid(pid);
-
-    if(process.pid < 0 || current_process.pid != process.p_pid){
-        return;
-    }
-
-    block_current_process_to_queue(process.waiting_list);
+    block_process();
 }
 
 

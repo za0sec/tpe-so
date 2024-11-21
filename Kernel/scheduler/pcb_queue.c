@@ -116,7 +116,7 @@ pcb_t find_dequeue_pid(q_adt q, uint64_t pid) {
 
 
 void free_q(q_adt q) {
-    if (q->rear == NULL) {
+    if (q == NULL || q->rear == NULL) {
         mem_free(q);
         return;
     }

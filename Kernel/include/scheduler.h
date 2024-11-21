@@ -56,6 +56,7 @@ int remove_file_descriptor_current_process(open_file_t *fd);
 void wait_pid(uint64_t pid);
 char * list_processes();
 void yield();
+void terminate_process(pcb_t process);
 
 // Queue management
 uint8_t add_priority_queue(pcb_t process);
