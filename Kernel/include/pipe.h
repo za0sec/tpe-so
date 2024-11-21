@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <semaphore.h>
 
-#define BUFF_SIZE 1024
+#define BUFF_SIZE 4096
 #define SEMAPHORE_NAME_SIZE 32
 
 // Estructura para los pipes
